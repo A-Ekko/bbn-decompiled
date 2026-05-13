@@ -1,0 +1,659 @@
+package com.pst.core.line;
+
+import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+import org.apache.mina.core.session.IoSession;
+
+import com.pst.core.amf.AmfData;
+import com.pst.core.line.command.Command;
+import com.pst.core.line.controller.ChatController;
+import com.pst.core.line.controller.LineController;
+import com.pst.core.line.controller.PlayerController;
+import com.pst.core.line.controller.SystemMsgController;
+import com.pst.core.line.entity.Line;
+import com.pst.core.line.entity.Player;
+import com.pst.core.line.store.SystemStore;
+import com.pst.core.protocol.Information;
+import com.pst.core.protocol.Protocol;
+import com.pst.core.protocol.ProtocolF002;
+import com.pst.core.util.VirtualMachine;
+import com.pst.game.vo.LinePlayerVO;
+
+public class Console {
+	private ProtocolF002 protocol=new ProtocolF002();
+	private Logger logger=Logger.getLogger(Console.class);
+	private PlayerController playerController=new PlayerController();
+	private ChatController chatController=new ChatController();
+	private AmfData amf=new AmfData();
+	private LineController lineController=new LineController();
+	private SystemMsgController sysMsgController=new SystemMsgController();
+	
+	public void action(IoSession session,byte[] data){
+		Information info=protocol.parseCmdBytes(data);
+		//logger.info("info="+info.getType());
+		if(Command.changeMap.equals(info.getType())){
+			changeMap(session,info);
+		}else if(Command.lineChat.equals(info.getType())){
+			chat(info);
+		}else if(Command.online.equals(info.getType())){
+			online(session,info);
+		}else if(Command.downline.equals(info.getType())){
+			downline(info);
+		}else if(Command.connectGame.equals(info.getType())){
+			connectGame(session,info);
+		}else if(Command.lineInfo.equals(info.getType())){
+			lineInfo(session,info);
+		}else if(Command.changeBugle.equals(info.getType())){
+			changeBugle(info);
+		}else if(Command.friendOnOrDownline.equals(info.getType())){
+			friendOnOrDownline(info);
+		}else if(Command.createTeam.equals(info.getType())){
+			createTeam(info);
+		}else if(Command.joinTeam.equals(info.getType())){
+			joinTeam(info);
+		}else if(Command.leaveTeam.equals(info.getType())){
+			leaveTeam(info);
+		}else if(Command.lineOpen.equals(info.getType())){
+			lineOpen(session,info);
+		}else if(Command.client_sysMessage.equals(info.getType())){///系统消息
+    		sysMessage(session,info);
+    	}else if(Command.fromGserver_createGuild.equals(info.getType())){
+    		logger.info("创建公会");
+    		createGuild(session,info);
+    	}else if(Command.fromGserver_addApplyJionGuild.equals(info.getType())){
+    		logger.info("玩家添加公会申请人");
+    		addApplyJionGuild(session,info);
+    	}else if(Command.fromGserver_addGuildRole.equals(info.getType())){
+    		logger.info("添加玩家进入公会");
+    		addGuildRole(session,info);
+    	}else if(Command.fromGserver_addRoleGuild.equals(info.getType())){
+    		logger.info("添加玩家的公会信息");
+    		addRoleGuild(session,info);
+    	}else if(Command.fromGserver_rejectApplyRole.equals(info.getType())){
+    		logger.info("拒绝玩家申请");
+    		rejectApplyRole(session,info);
+    	}else if(Command.fromGserver_rejectRole.equals(info.getType())){
+    		logger.info("剔除玩家出公会");
+    		rejectRole(session,info);
+    	}else if(Command.fromGserver_dismissGuild.equals(info.getType())){
+    		logger.info("解散工会");
+    		dismissGuild(session,info);
+    	}
+    	else if(Command.fromGserver_changeGuildInfo.equals(info.getType())){
+    		logger.info("修改公会信息");
+    		changeGuildInfo(session,info);
+    	}
+		
+    	else if(Command.fromGserver_careteTitle.equals(info.getType())){
+    		logger.info("创建职位");
+    		careteTitle(session,info);
+    	}
+    	else if(Command.fromGserver_alertTitle.equals(info.getType())){
+    		logger.info("修改职位");
+    		alertTitle(session,info);
+    	}
+    	else if(Command.fromGserver_delTitle.equals(info.getType())){
+    		logger.info("删除职位");
+    		delTitle(session,info);
+    	}
+    	else if(Command.fromGserver_checkRoleInfo.equals(info.getType())){    		
+    		logger.info("跨线查看玩家信息");
+    		checkRoleInfo(session,info);
+    	}
+    	else if(Command.fromGserver_radioKillMonster.equals(info.getType())){
+    		logger.info("跨线杀死怪物的广播");
+    		radioKillMonster(session,info);
+    	}
+    	else if(Command.fromGserver_findRoleInfo.equals(info.getType())){
+    		logger.info("跨线查询玩家的基本信息");
+    		findRoleInfo(session,info);
+    	}
+    	else if(Command.fromGserver_warInfo.equals(info.getType())){
+    		logger.info("跨线改变战场状态");
+    		warInfo(session,info);
+    	}
+    	else if(Command.fromGserver_horn.equals(info.getType()))
+    	{
+    		logger.info("跨线小喇叭");
+    		this.horn(info);
+    		
+    	}
+
+	}
+	
+	
+	/**
+	 * 创建职位
+	 * @param session
+	 * @param info
+	 */
+	private void careteTitle(IoSession session,Information info){
+		lineController.careteTitle(session,info.getData());
+	}
+	
+	/**
+	 * 修改职位
+	 * @param session
+	 * @param info
+	 */
+	private void alertTitle(IoSession session,Information info){
+		lineController.alertTitle(session,info.getData());
+	}
+	
+	/**
+	 * 删除职位
+	 * @param session
+	 * @param info
+	 */
+	private void delTitle(IoSession session,Information info){
+		lineController.delTitle(session,info.getData());
+	}
+	
+	private void createGuild(IoSession session,Information info){
+		lineController.createGuild(session,info.getData());
+	}
+	
+	private void addGuildRole(IoSession session,Information info){
+		lineController.addGuildRole(session,info.getData());
+	}
+	
+	private void addApplyJionGuild(IoSession session,Information info){
+		lineController.addApplyJionGuild(session,info.getData());
+	}
+	
+	private void addRoleGuild(IoSession session,Information info){
+		lineController.addRoleGuild(session,info.getData());
+	}
+
+	private void rejectApplyRole(IoSession session,Information info){
+		lineController.rejectApplyRole(session,info.getData());
+	}
+
+	private void rejectRole(IoSession session,Information info){
+		lineController.rejectRole(session,info.getData());
+	}
+	
+	/**
+	 * 解散工会
+	 * @param session
+	 * @param info
+	 */
+	private void dismissGuild(IoSession session,Information info){
+		lineController.dismissGuild(session,info.getData());
+	}
+	
+	/**
+	 * 修改公会信息
+	 * @param session
+	 * @param info
+	 */
+	private void changeGuildInfo(IoSession session,Information info){
+		lineController.changeGuildInfo(session,info.getData());
+	}
+	
+	/**
+	 * 跨线查询他线玩家
+	 * @param session
+	 * @param info
+	 */
+	private void checkRoleInfo(IoSession session,Information info)
+	{
+		lineController.checkRoleInfo(session,info.getData());
+	}
+	
+	/**
+	 * 跨线查询玩家的基本信息
+	 * @param session
+	 * @param info
+	 */
+	private void findRoleInfo(IoSession session,Information info){
+		lineController.findRoleInfo(session, info.getData());
+	}
+	
+
+	private void lineInfo(IoSession session,Information info){
+		logger.info("获取在线信息 info.getData().length="+info.getData().length);
+		//lineController.gameLineInfo(session,info.getRoleId());
+		//logger.info("info.getData().length="+info.getData().length);
+		if(info.getData()!=null && info.getData().length==4){
+    		int account=Integer.parseInt(protocol.ByteToHexLen(info.getData()),16);
+    		lineController.gameLineInfo(session,account);
+		}
+	}
+	
+	/**
+	 * 线开通
+	 * @param info
+	 */
+	private void lineOpen(IoSession session,Information info){
+		logger.info("线开通 info.getData().length="+info.getData().length);
+		//线id(1U) 端口(2U) IP长度(1U) IP(xU) 名称(XU) 
+		if(info.getData()!=null && info.getData().length>4){
+    		byte[] lineBytes=new byte[1];
+    		byte[] portBytes=new byte[2];
+    		byte[] ipLenBytes=new byte[1];
+    		
+    		int srcPos=0;
+    		System.arraycopy(info.getData(),srcPos,lineBytes,0,lineBytes.length);
+    		srcPos+=lineBytes.length;
+    		
+    		System.arraycopy(info.getData(),srcPos,portBytes,0,portBytes.length);
+    		srcPos+=portBytes.length;
+    		
+    		System.arraycopy(info.getData(),srcPos,ipLenBytes,0,ipLenBytes.length);
+    		srcPos+=ipLenBytes.length;
+    		
+    		int line=Integer.parseInt(protocol.ByteToHexLen(lineBytes),16);
+    		int port=Integer.parseInt(protocol.ByteToHexLen(portBytes),16);
+    		int ipLen=Integer.parseInt(protocol.ByteToHexLen(ipLenBytes),16);
+    		
+			byte[] ipBytes=new byte[ipLen];
+			byte[] nameBytes=new byte[info.getData().length-lineBytes.length-portBytes.length-ipLenBytes.length-ipBytes.length];
+			
+    		
+    		
+    		System.arraycopy(info.getData(),srcPos,ipBytes,0,ipBytes.length);
+    		srcPos+=ipBytes.length;
+    		
+    		System.arraycopy(info.getData(),srcPos,nameBytes,0,nameBytes.length);
+    		
+    		String ip= new String(ipBytes);
+    		String name=null;
+			try {name = new String(nameBytes,"utf-8");} catch (UnsupportedEncodingException e) {e.printStackTrace();}
+				
+    		lineController.lineOpen(line,ip,port,name,session);
+		}
+	}
+	
+	public void lineClose(Line line){
+		lineController.lineClose(line);
+	}
+	
+	/**
+	 * 玩家上线
+	 * @param info
+	 */
+	private void online(IoSession session,Information info){
+		//玩家公会Id(4u) 玩家阵营Id(4u) 玩家所在的线(4u) 玩家所在的地图Id(4u) 玩家名称长度(1u) 玩家名称(xu) 玩家喇叭(xu)[喇叭1Id:喇叭1个数,喇叭2Id:喇叭2个数........]
+		//logger.info("玩家["+info.getRoleId()+"]上线info.getData().length="+info.getData().length);
+		if(info.getData()!=null){
+			LinePlayerVO linePlayerVo=(LinePlayerVO)amf.readData(info.getData());
+			
+			if(linePlayerVo!=null){
+				
+				int guild=linePlayerVo.gid;
+	    		int camp=linePlayerVo.cid;
+	    		int map=linePlayerVo.mid;
+	    		int line=linePlayerVo.l;
+	    		String name=linePlayerVo.pn;
+				String bugleStr=linePlayerVo.bn;
+				List<Integer> friends=linePlayerVo.fid;
+				int userId=linePlayerVo.uid;
+				
+	    		Map<Integer,Integer> bugleMap=new HashMap<Integer,Integer>();
+	    		if(bugleStr!=null){
+	    			String[] bugleNumber=bugleStr.split(",");
+	    			for(int i=0;i<bugleNumber.length;i++){
+	    				String bugleTeam=bugleNumber[i];
+	    				bugleMap.put(Integer.parseInt(bugleTeam.substring(0,bugleTeam.indexOf(":"))), Integer.parseInt(bugleTeam.substring(bugleTeam.lastIndexOf(":")+1)));
+	    			}
+	    		}
+	    		//logger.info("玩家ID["+info.getRoleId()+"] 玩家账号["+userId+"] 玩家名称["+name+"] 工会ID["+guild+"] 玩家阵营["+camp+"] 玩家所在的地图ID["+map+"] 玩家进入游戏的线["+line+"] 玩家的好友ID列表"+friends+" 玩家身上的喇叭总数"+bugleMap+"");
+	    		playerController.online(session,info.getRoleId(), name, guild, camp, map, line, bugleMap,friends,userId);
+			}
+			
+			StringBuffer debugmsg = new StringBuffer();
+			
+			debugmsg.append("现在进程PID[");
+			debugmsg.append(VirtualMachine.getPid());
+			debugmsg.append("]总内存:");
+			debugmsg.append(Runtime.getRuntime().totalMemory()/1024);
+			debugmsg.append("K,已使用内存:");
+			debugmsg.append((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024);
+			debugmsg.append("K,空闲内存:");
+			debugmsg.append(Runtime.getRuntime().freeMemory()/1024);
+			debugmsg.append("K");
+			debugmsg.append("当前在线的总人数:"+SystemStore.players.size());
+			
+			logger.info(debugmsg);
+		}
+	}
+	
+	/**
+	 * 玩家下线
+	 * @param info 
+	 */
+	private void downline(Information info){
+		//玩家id(4u)
+		//logger.info("玩家["+info.getRoleId()+"]下线info.getData().length="+info.getData().length);
+		playerController.downline(SystemStore.players.remove(info.getRoleId()));
+	}
+	
+//	public void downline(Player player){
+//		playerController.downline(player);
+//	}
+	
+	
+	/**
+	 * 连接游戏
+	 * @param session
+	 * @param info
+	 */
+	private void connectGame(IoSession session,Information info){
+		logger.info("玩家["+info.getRoleId()+"]连接游戏info.getData().length="+info.getData().length);
+		playerController.connectGame(info.getRoleId(), session);
+	}
+	
+	/**
+	 * 组队
+	 * @param info
+	 */
+	private void createTeam(Information info){
+		//队友Id(4u) 队伍Id(xu)
+		//logger.info("玩家["+info.getRoleId()+"]组队info.getData().length="+info.getData().length);
+		if(info.getData()!=null && info.getData().length>4){
+			byte[] partnerBytes=new byte[4];
+			byte[] teamBytes=new byte[info.getData().length-partnerBytes.length];
+			
+    		int srcPos=0;
+    		System.arraycopy(info.getData(),srcPos,partnerBytes,0,partnerBytes.length);
+    		srcPos+=partnerBytes.length;
+    		
+    		System.arraycopy(info.getData(),srcPos,teamBytes,0,teamBytes.length);
+    		
+    		String teamId=null;
+    		int partnerId=Integer.parseInt(protocol.ByteToHexLen(partnerBytes),16);
+    		try {teamId=new String(teamBytes,Protocol.PROTOCAL_ENCODEDEFAULT);} catch (UnsupportedEncodingException e) {e.printStackTrace();}
+			
+			playerController.createTeam(info.getRoleId(), partnerId, teamId);
+		}
+	}
+	
+	/**
+	 * 加入队伍
+	 * @param info
+	 */
+	private void joinTeam(Information info){
+		//队伍Id(xu)
+		//logger.info("玩家["+info.getRoleId()+"]加入队伍info.getData().length="+info.getData().length);
+		if(info.getData()!=null && info.getData().length>1){
+    		String teamId=null;
+    		try {teamId=new String(info.getData(),Protocol.PROTOCAL_ENCODEDEFAULT);} catch (UnsupportedEncodingException e) {e.printStackTrace();}
+			playerController.joinTeam(info.getRoleId(),teamId);
+		}
+	}
+	
+	/**
+	 * 离开队伍
+	 * @param info
+	 */
+	private void leaveTeam(Information info){
+		//队伍Id(xu)
+		//logger.info("玩家["+info.getRoleId()+"]离开队伍info.getData().length="+info.getData().length);
+		if(info.getData()!=null && info.getData().length>1){
+			String teamId=null;
+    		try {teamId=new String(info.getData(),Protocol.PROTOCAL_ENCODEDEFAULT);} catch (UnsupportedEncodingException e) {e.printStackTrace();}
+			playerController.leaveTeam(info.getRoleId(),teamId);
+		}
+	}
+	
+	/**
+	 * 好友上下线
+	 * @param info
+	 */
+	private void friendOnOrDownline(Information info){
+		//上下线类型(1u)[0:下线,1:上线] 好友列表(xu)
+		
+		//logger.info("好友["+info.getRoleId()+"]上下线info.getData().length="+info.getData().length);
+		
+		if(info.getData()!=null && info.getData().length>1){
+			byte[] typeBytes=new byte[1];
+			byte[] friendBytes=new byte[info.getData().length-typeBytes.length];
+			
+			int srcPos=0;
+    		
+    		System.arraycopy(info.getData(),srcPos,typeBytes,0,typeBytes.length);
+    		srcPos+=typeBytes.length;
+    		
+    		System.arraycopy(info.getData(),srcPos,friendBytes,0,friendBytes.length);
+    		
+    		int type=Integer.parseInt(protocol.ByteToHexLen(typeBytes),16);
+    		
+    		String friend=null;
+    		try {friend=new String(friendBytes,Protocol.PROTOCAL_ENCODEDEFAULT);} catch (UnsupportedEncodingException e) {e.printStackTrace();}
+    		Integer[] receiver=null;
+    		if(friend!=null){
+    			String[] fs=friend.split(",");
+    			receiver=new Integer[fs.length];
+    			for(int i=0;i<fs.length;i++){
+    				receiver[i]=Integer.parseInt(fs[i]);
+    			}
+    			playerController.friendOnOrDownline(info.getRoleId(),receiver,type);
+    		}
+    		
+		}
+	}
+	
+	/**
+	 * 玩家转换地图
+	 * @param info
+	 */
+	private void changeMap(IoSession session,Information info){
+		//地图id(4u)
+		
+		//logger.info("玩家["+info.getRoleId()+"]转换地图info.getData().length="+info.getData().length);
+		
+		if(info.getData()!=null && info.getData().length==4){
+			//byte[] idBytes=new byte[4];
+			byte[] mapBytes=new byte[4];
+			
+			int srcPos=0;
+    		//System.arraycopy(info.getData(),srcPos,idBytes,0,idBytes.length);
+    		//srcPos+=idBytes.length;
+    		
+    		System.arraycopy(info.getData(),srcPos,mapBytes,0,mapBytes.length);
+			
+    		//int playerId=Integer.parseInt(protocol.ByteToHexLen(idBytes),16);
+    		int map=Integer.parseInt(protocol.ByteToHexLen(mapBytes),16);
+    		
+    		playerController.changeMap(session,info.getRoleId(), map);
+    		
+		}
+	}
+	
+	
+	
+	/**
+	 * 玩家聊天
+	 * @param info
+	 */
+	private void chat(Information info){
+		//聊天类型[0,私聊,1:世界,2:场景,3:队伍,4:帮派,5:阵营]	聊天对象名称长度(1u)	聊天对象名称(xu) 数据对象长度(1u) 数据对象(xu) 聊天内容(xu)
+		
+		//logger.info("玩家["+info.getRoleId()+"]聊天info.getData().length="+info.getData().length);
+		
+		if(info.getData()!=null && info.getData().length>2){
+    		
+    		byte[] typeByte=new byte[1];
+    		byte[] nameLenBytes=new byte[1];
+    		byte[] dataLenByte=new byte[1];
+    		
+    		int srcPos=0;
+    		System.arraycopy(info.getData(),srcPos,typeByte,0,typeByte.length);
+    		srcPos+=typeByte.length;
+    		
+    		System.arraycopy(info.getData(),srcPos,nameLenBytes,0,nameLenBytes.length);
+    		srcPos+=nameLenBytes.length;
+    		
+    		int nameLen=Integer.parseInt(protocol.ByteToHexLen(nameLenBytes),16);
+    		
+    		byte[] nameBytes=new byte[nameLen];
+    		System.arraycopy(info.getData(),srcPos,nameBytes,0, nameBytes.length);
+    		srcPos+=nameBytes.length;
+    		
+    		System.arraycopy(info.getData(), srcPos, dataLenByte, 0, dataLenByte.length);
+    		srcPos+=dataLenByte.length;
+    		
+    		int dataLen=Integer.parseInt(protocol.ByteToHexLen(dataLenByte),16);
+    		byte[] dataByte=new byte[dataLen];
+    		
+    		System.arraycopy(info.getData(), srcPos, dataByte, 0, dataByte.length);
+    		srcPos+=dataByte.length;
+    		
+    		//System.out.println("聊天数据总长度="+info.getData().length+" type长度"+typeByte.length+" 名称长度"+nameLenBytes.length+" 名称对象长度"+nameLen+" 数据对象长度"+dataLenByte.length+" 数据长度"+dataByte.length);
+    		
+    		byte[] contentByes=new byte[info.getData().length-typeByte.length-nameLenBytes.length-nameLen-dataLenByte.length-dataByte.length];
+    		System.arraycopy(info.getData(),srcPos,contentByes,0, contentByes.length);
+    		
+    		int type=Integer.parseInt(protocol.ByteToHexLen(typeByte),16);
+    		String target=null;
+    		try {target=new String(nameBytes,Protocol.PROTOCAL_ENCODEDEFAULT);} catch (UnsupportedEncodingException e) {e.printStackTrace();}
+    		String dataStr=null;
+    		try{
+    			dataStr=new String(dataByte,Protocol.PROTOCAL_ENCODEDEFAULT);
+    		}catch(UnsupportedEncodingException e){
+    			e.printStackTrace();
+    		}
+    		
+    		//logger.info("玩家["+info.getRoleId()+"]聊天状态["+type+"(0,私聊,1:世界,2:场景,3:队伍,4:帮派,5:阵营)] 聊天对象["+target+"(如果是世界聊天是为喇叭ID)] 聊天的长度["+contentByes.length+"]");
+    		
+    		chatController.chat(info.getRoleId(),type,target,contentByes,dataStr);
+    	}
+	}
+	
+	/**
+	 * 玩家使用小喇叭
+	 * @param info
+	 */
+	private void horn(Information info)
+	{
+		//聊天类型[0,私聊,1:世界,2:场景,3:队伍,4:帮派,5:阵营]	聊天对象名称长度(1u)	聊天对象名称(xu) 数据对象长度(1u) 数据对象(xu) 聊天内容(xu)
+		
+		//logger.info("玩家["+info.getRoleId()+"]聊天info.getData().length="+info.getData().length);
+		
+		if(info.getData()!=null && info.getData().length>2)
+		{
+			
+			
+    		byte[] typeByte=new byte[1];
+    		byte[] nameLenBytes=new byte[1];
+    		byte[] dataLenByte=new byte[1];
+    		
+    		int srcPos=0;
+    		System.arraycopy(info.getData(),srcPos,typeByte,0,typeByte.length);
+    		srcPos+=typeByte.length;
+    		
+    		System.arraycopy(info.getData(),srcPos,nameLenBytes,0,nameLenBytes.length);
+    		srcPos+=nameLenBytes.length;
+    		
+    		int nameLen=Integer.parseInt(protocol.ByteToHexLen(nameLenBytes),16);
+    		
+    		byte[] nameBytes=new byte[nameLen];
+    		System.arraycopy(info.getData(),srcPos,nameBytes,0, nameBytes.length);
+    		srcPos+=nameBytes.length;
+    		
+    		System.arraycopy(info.getData(), srcPos, dataLenByte, 0, dataLenByte.length);
+    		srcPos+=dataLenByte.length;
+    		
+    		int dataLen=Integer.parseInt(protocol.ByteToHexLen(dataLenByte),16);
+    		byte[] dataByte=new byte[dataLen];
+    		
+    		System.arraycopy(info.getData(), srcPos, dataByte, 0, dataByte.length);
+    		srcPos+=dataByte.length;
+    		
+    		//System.out.println("聊天数据总长度="+info.getData().length+" type长度"+typeByte.length+" 名称长度"+nameLenBytes.length+" 名称对象长度"+nameLen+" 数据对象长度"+dataLenByte.length+" 数据长度"+dataByte.length);
+    		
+    		byte[] contentByes = new byte[info.getData().length - typeByte.length-nameLenBytes.length-dataLenByte.length-dataByte.length-nameBytes.length];
+    		System.arraycopy(info.getData(),srcPos,contentByes,0, contentByes.length);
+    		
+    		int type=Integer.parseInt(protocol.ByteToHexLen(typeByte),16);
+    		
+    		String target=null;
+    		String dataStr=null;
+    		
+    		try
+    		{
+    			target= new String(nameBytes,Protocol.PROTOCAL_ENCODEDEFAULT);
+    			dataStr=new String(dataByte,Protocol.PROTOCAL_ENCODEDEFAULT);
+    		} 
+    		catch(UnsupportedEncodingException e) 
+    		{
+    			e.printStackTrace();
+    		}
+    		
+    		/**
+    		 * 注:这里使用 pt因为pt,这里的聊天必须使用pt方式
+    		 */
+    		chatController.horn(info.getPt(),type,target,contentByes,dataStr);
+    	}
+	}
+	
+	private void changeBugle(Information info){
+		//喇叭数量(2u) 玩家喇叭(xu)[喇叭1Id:喇叭1个数,喇叭2Id:喇叭2个数........]
+		logger.info("玩家["+info.getRoleId()+"]喇叭数量info.getData().length="+info.getData().length);
+		
+		if(info.getData()!=null){
+			String bugleNumber=null;
+			try {
+				bugleNumber=new String(info.getData(),Protocol.PROTOCAL_ENCODEDEFAULT);
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
+			if(bugleNumber!=null){
+				Map<Integer,Integer> tMap=new HashMap<Integer,Integer>();
+				String[] bugleStr=bugleNumber.split(",");
+				for(int i=0;i<bugleStr.length;i++){
+					String bugleTeam=bugleStr[i];
+					tMap.put(Integer.parseInt(bugleTeam.substring(0,bugleTeam.indexOf(":"))), Integer.parseInt(bugleTeam.substring(bugleTeam.lastIndexOf(":")+1)));
+				}
+				playerController.bugleNumber(info.getRoleId(),tMap);
+			}
+		}
+	}
+	
+	/**
+	 * 系统消息
+	 * @param info
+	 */
+	private void sysMessage(IoSession session,Information info){
+		if(info.getData() != null){
+			sysMsgController.sysMessage(info.getData(),info.getRoleId(),true,session);
+		}else{
+			sysMsgController.sysMessage(info.getData(),info.getRoleId(),false,session);
+		}
+	}
+	
+	/**
+	 * 杀死怪物的广播
+	 * @param session
+	 * @param info
+	 */
+	private void radioKillMonster(IoSession session,Information info){
+		sysMsgController.radioMonster(session,info.getData());
+	}
+	
+	/**
+	 * 改变战场状态
+	 * @param session
+	 * @param info
+	 */
+	private void warInfo(IoSession session,Information info)
+	{
+		 lineController.warInfo(session, info.getData());
+	}
+	
+	/**
+	 * 小喇叭
+	 * @param session
+	 * @param info
+	 */
+	private void horn(IoSession session,Information info)
+	{
+		
+	}
+	
+}

@@ -1,0 +1,100 @@
+package com.pst.core.line;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.mina.core.future.WriteFuture;
+import org.apache.mina.core.session.IoSession;
+
+import com.pst.core.line.command.Command;
+import com.pst.core.line.entity.Player;
+import com.pst.core.line.store.SystemStore;
+import com.pst.core.protocol.ProtocolF002;
+
+public class ClientListener implements Runnable{
+	private long timeout=1000*60;
+	//private long timeout=5000;
+	private ProtocolF002 protocol=new ProtocolF002();
+	private byte[] heartBeat;
+	private boolean flag=false;
+	
+	public ClientListener(){
+		heartBeat=protocol.packProtocolBytes(new byte[]{},Command.heartBeat);
+	}
+
+	@Override
+	public void run() {
+		while(true){
+			try{
+				Thread.sleep(timeout);
+				if(flag){
+					checkSession();
+				}else{
+					checkPlayer();
+				}
+				flag=!flag;
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	private void checkPlayer(){
+		Iterator<Integer> iterator = SystemStore.players.keySet().iterator();
+		List<Integer> list=new ArrayList<Integer>(SystemStore.players.size());
+		while(iterator.hasNext()){
+			list.add(iterator.next());
+		}
+		
+		Player player;
+		IoSession session;
+		for(int i=0;i<list.size();i++){
+			player=SystemStore.players.get(list.get(i));
+			if(player!=null){
+				session=player.getClientSession();
+				if(session!=null){
+					print(session);
+				}
+			}
+		}
+		
+		list=null;
+	}
+	
+	private void checkSession(){
+		Iterator<IoSession> iterator =SystemStore.sessionPlayers.keySet().iterator();
+		IoSession session;
+		
+		List<IoSession> list=new ArrayList<IoSession>(SystemStore.sessionPlayers.size());
+		
+		while(iterator.hasNext()){
+			list.add(iterator.next());
+		}
+		for(int i=0;i<list.size();i++){
+			session=list.get(i);
+			if(session!=null){
+				print(session);
+			}
+		}
+		list=null;
+	}
+	
+	public boolean print(IoSession session){
+		WriteFuture writeFuture=null;
+		try {
+			for(int i=0;i<3;i++){
+				writeFuture=session.write(heartBeat);
+				writeFuture.awaitUninterruptibly();
+				boolean flag=writeFuture.isWritten();//The message has been written successfully
+				if(flag){
+					return true;
+				}
+			}
+			return false;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return true;
+	}
+}

@@ -1,0 +1,489 @@
+package com.pst.core.line.controller;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import org.apache.log4j.Logger;
+import org.apache.mina.core.session.IoSession;
+
+import com.pst.core.config.SystemConfig;
+import com.pst.core.line.command.CommandWrapper;
+import com.pst.core.line.command.info.LineInfo;
+import com.pst.core.line.command.info.ServerInfo;
+import com.pst.core.line.entity.Line;
+import com.pst.core.line.entity.Player;
+import com.pst.core.line.store.SystemStore;
+import com.pst.core.protocol.Information;
+
+public class LineController {
+	private CommandWrapper commandWrapper=new CommandWrapper();
+	private Logger logger=Logger.getLogger(LineController.class);
+	
+	/**
+	 * 线开通
+	 * @param id 线Id
+	 */
+	public void lineOpen(int id,String ip,int port,String name,IoSession session){
+		Line line;
+		boolean has=false;
+		synchronized (SystemStore.lines) {
+			for(int i=0;i<SystemStore.lines.size();i++){
+				line=SystemStore.lines.get(i);
+				if(line!=null){
+					if(line.getId()==id){
+						if(line.getSession()!=null && line.getSession().isConnected() && !line.getSession().isClosing()){
+							line.getSession().close(false);
+						}
+						line.setSession(session);
+						line.setIp(ip);
+						line.setPort(port);
+						line.setName(name);
+						line.setStatus(1);
+						
+						has=true;
+						break;
+					}
+				}else{
+					SystemStore.lines.remove(i--);
+				}
+			}
+			if(!has){
+				Line newLine=new Line();
+				
+				newLine.setId(id);
+				newLine.setSession(session);
+				newLine.setIp(ip);
+				newLine.setPort(port);
+				newLine.setName(name);
+				newLine.setStatus(1);
+				
+				boolean add=false;
+				for(int i=0;i<SystemStore.lines.size();i++){
+					line=SystemStore.lines.get(i);
+					if(line.getId()>id){
+						SystemStore.lines.add(i,newLine);
+						add=true;
+						break;
+					}
+				}
+				if(!add){
+					SystemStore.lines.add(newLine);
+				}
+			}
+			logger.info("线["+id+" : "+name+"]开通,IP["+ip+"],端点["+port+"]");
+		}
+	}
+	
+	public void createGuild(IoSession session,byte[] data){
+		Line line;
+		IoSession temp;
+		byte[] cmdBytes=commandWrapper.createGuild(data);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				temp=line.getSession();
+				if(temp!=null && temp!=session){
+					temp.write(cmdBytes);
+				}
+			}
+		}
+	}
+	
+	public void addApplyJionGuild(IoSession session,byte[] data){
+		Line line;
+		IoSession temp;
+		byte[] cmdBytes=commandWrapper.addApplyJionGuild(data);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				temp=line.getSession();
+				if(temp!=null && temp!=session){
+					logger.info("通知线["+line.getId()+"]");
+					temp.write(cmdBytes);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 跨线查询他线玩家
+	 * @param session
+	 * @param data
+	 */
+	public void checkRoleInfo(IoSession session,byte[] data){
+		Line line;
+		IoSession temp;
+		byte[] cmdBytes=commandWrapper.checkRoleInfo(data);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				temp=line.getSession();
+				if(temp!=null && temp!=session)
+				{
+					temp.write(cmdBytes);
+					logger.info("通知线["+line.getId()+"]跨线查询他线玩家信息");
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 跨线返回查询玩家的基本信息
+	 * @param session
+	 * @param data
+	 */
+	public void findRoleInfo(IoSession session,byte[] data){
+		Line line;
+		IoSession temp;
+		byte[] cmdBytes=commandWrapper.findRoleInfo(data);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				temp=line.getSession();
+				if(temp!=null && temp!=session)
+				{
+					temp.write(cmdBytes);
+					logger.info("通知线["+line.getId()+"]跨线返回查询他线玩家信息");
+				}
+			}
+		}
+	}
+	
+
+	public void addGuildRole(IoSession session,byte[] data){
+		Line line;
+		IoSession temp;
+		byte[] cmdBytes=commandWrapper.addGuildRole(data);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				temp=line.getSession();
+				if(temp!=null && temp!=session){
+					temp.write(cmdBytes);
+					logger.info("通知线["+line.getId()+"]添加玩家进入公会");
+				}
+			}
+		}
+	}
+	
+	public void addRoleGuild(IoSession session,byte[] data){
+		Line line;
+		IoSession temp;
+		byte[] cmdBytes=commandWrapper.addRoleGuild(data);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				temp=line.getSession();
+				if(temp!=null && temp!=session){
+					temp.write(cmdBytes);
+					logger.info("通知线["+line.getId()+"]玩家进入公会xxxxxxxxxxxxxxx");
+				}
+			}
+		}
+	}
+	
+	public void rejectApplyRole(IoSession session,byte[] data){
+		Line line;
+		IoSession temp;
+		byte[] cmdBytes=commandWrapper.rejectApplyRole(data);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				temp=line.getSession();
+				if(temp!=null && temp!=session){
+					temp.write(cmdBytes);
+				}
+			}
+		}
+	}
+	
+	public void rejectRole(IoSession session,byte[] data){
+		Line line;
+		IoSession temp;
+		byte[] cmdBytes=commandWrapper.rejectRole(data);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				temp=line.getSession();
+				if(temp!=null && temp!=session){
+					temp.write(cmdBytes);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 解散工会
+	 * @param session
+	 * @param data
+	 */
+	public void dismissGuild(IoSession session,byte[] data){
+		Line line;
+		IoSession temp;
+		byte[] cmdBytes=commandWrapper.dismissGuild(data);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				temp=line.getSession();
+				if(temp!=null && temp!=session){
+					temp.write(cmdBytes);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 修改公会信息
+	 * @param session
+	 * @param data
+	 */
+	public void changeGuildInfo(IoSession session,byte[] data){
+		Line line;
+		IoSession temp;
+		byte[] cmdBytes=commandWrapper.changeGuildInfo(data);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				temp=line.getSession();
+				if(temp!=null && temp!=session){
+					temp.write(cmdBytes);
+				}
+			}
+		}
+	}
+	
+	
+	
+	
+	
+	
+	/**
+	 * 创建职位
+	 * @param session
+	 * @param info
+	 */
+	public void careteTitle(IoSession session,byte[] data){
+		Line line;
+		IoSession temp;
+		byte[] cmdBytes=commandWrapper.careteTitle(data);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				temp=line.getSession();
+				if(temp!=null && temp!=session){
+					logger.info("line["+line.getId()+" : "+line.getIp()+"]");
+					temp.write(cmdBytes);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 修改职位
+	 * @param session
+	 * @param info
+	 */
+	public void alertTitle(IoSession session,byte[] data){
+		Line line;
+		IoSession temp;
+		byte[] cmdBytes=commandWrapper.alertTitle(data);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				temp=line.getSession();
+				if(temp!=null && temp!=session){
+					temp.write(cmdBytes);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 删除职位
+	 * @param session
+	 * @param info
+	 */
+	public void delTitle(IoSession session,byte[] data){
+		Line line;
+		IoSession temp;
+		byte[] cmdBytes=commandWrapper.delTitle(data);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				temp=line.getSession();
+				if(temp!=null && temp!=session){
+					temp.write(cmdBytes);
+				}
+			}
+		}
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	/**
+	 * 线关闭
+	 * @param id 线Id
+	 */
+	public void lineClose(Line line){
+		line.setStatus(0);
+	}
+	
+	public void gameLineInfo(IoSession session,int account){
+		logger.info("玩家账号["+account+"]获取线的信息");
+		
+		
+		otherLineAccountConnect(account);//通知各线玩家获取游戏线的信息
+		
+		
+		ServerInfo si=new ServerInfo();
+		si.n=SystemStore.server;
+		
+		si.l=new ArrayList<LineInfo>();
+		
+		LineInfo info;
+		LineInfo minLineInfo=null;
+		Line line;
+		int min=99999999;
+		int playerNum=0;
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				info=new LineInfo();
+				info.ip=line.getIp();
+				info.name=line.getName();
+				info.port=line.getPort();
+				if(line.getStatus()!=0){
+					playerNum=countLineNum(line.getId());
+					
+					if(playerNum<min){
+						min=playerNum;
+						minLineInfo=info;
+					}
+					
+					if(playerNum<SystemConfig.good){
+						info.status=1;
+					}else if(playerNum>=SystemConfig.good && playerNum<SystemConfig.bad){
+						info.status=2;
+					}else if(playerNum>=SystemConfig.bad){
+						info.status=3;
+					}
+				}else{
+					info.status=line.getStatus();
+				}
+				
+				si.l.add(info);	
+			}
+			
+			if(minLineInfo!=null){
+				boolean f=si.l.remove(minLineInfo);
+				if(f){
+					si.l.add(0,minLineInfo);
+				}
+			}
+		}
+		
+		session.write(commandWrapper.gameLineInfo(si));
+	}
+	
+	/**
+	 * 计算某一个线上在线人数的总数
+	 * @param lineId	线号
+	 * @return	人数
+	 */
+	private int countLineNum(int lineId){
+		int playerNum=0;
+		Iterator it=SystemStore.players.keySet().iterator();
+		Integer id;
+		Player player;
+		while(it.hasNext()){
+			id=(Integer)it.next();
+			player=SystemStore.players.get(id);
+			if(player!=null && lineId==player.getLine()){
+				playerNum++;
+			}
+		}
+		return playerNum;
+	}
+	
+//	/**
+//	 * 通知各线玩家获取游戏线的信息
+//	 * @param roleId 玩家角色ID
+//	 */
+//	private boolean roleLineConnet(int roleId){
+//		Line line;
+//		byte[] roleByte=commandWrapper.roleLineConnet(roleId);
+//		for(int i=0;i<SystemStore.lines.size();i++){
+//			line=SystemStore.lines.get(i);
+//			if(line.getSession()!=null){
+//				try{
+//					System.out.println("通知线["+line.getId()+"]玩家["+roleId+"]上线");
+//					line.getSession().write(roleByte);
+//				}catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
+//		return true;
+//	}
+	
+	/**
+	 * 通知各线玩家获取游戏线的信息
+	 * @param account 玩家账号
+	 */
+	private void otherLineAccountConnect(int account){
+		Line line;
+		byte[] roleByte=commandWrapper.otherLineAccountConnect(account);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line.getSession()!=null){
+				try{
+					logger.info("通知线["+line.getId()+"]玩家账号["+account+"]上线");
+					line.getSession().write(roleByte);
+				}catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 改变战场的状态
+	 * @param session
+	 * @param data
+	 */
+	public void warInfo(IoSession session,byte[] data){
+		Line line;
+		IoSession temp;
+		byte[] cmdBytes=commandWrapper.warInfo(data);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				temp=line.getSession();
+				if(temp!=null && temp!=session)
+				{
+					temp.write(cmdBytes);
+					logger.info("通知线["+line.getId()+"]跨线改变战场信息");
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 小喇叭
+	 * @param session
+	 * @param data
+	 */
+	public void horn(IoSession session,byte[] data)
+	{
+		
+	}
+	
+}

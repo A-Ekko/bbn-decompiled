@@ -1,0 +1,71 @@
+package com.pst.core;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import org.apache.log4j.Logger;
+
+import com.mysql.jdbc.CommunicationsException;
+import com.pst.config.SystemConfig;
+import com.pst.core.data.DataQueue;
+import com.pst.db.ConnectionPoolManager;
+
+public class Console {
+	private Logger logger =Logger.getLogger(Console.class);
+	
+	public void console(){
+		while (true) {
+			logger.info("检测:队列里还有" + DataQueue.sqlQueue.size()+ "条数据要执行>>>>>");
+			try {
+				action();
+				Thread.sleep(SystemConfig.runRate);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public void action(){
+		try{
+			Connection con = ConnectionPoolManager.getConnectionPool().getConnection();
+			Statement stmt = null;
+			try {
+				stmt = con.createStatement();
+				int index=0;
+				String sql=null;
+				synchronized (DataQueue.sqlQueue) {
+					while(DataQueue.sqlQueue.size()>0){
+						if(index>SystemConfig.batchMax)break;
+						try{
+							sql=DataQueue.sqlQueue.remove(0);
+							if(sql!=null){
+								index++;
+								stmt.executeUpdate(sql);
+							}
+						}catch(SQLException e) {
+							logger.info("数据操作错误:"+sql);
+							e.printStackTrace();
+						}catch(Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			} finally {
+				try {
+					if (stmt != null)stmt.close();
+					if (con != null)con.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}catch (Exception e2) {
+			if(e2 instanceof CommunicationsException){
+				logger.info("数据网络连接失败");
+			}
+			e2.printStackTrace();
+		}
+	}
+}

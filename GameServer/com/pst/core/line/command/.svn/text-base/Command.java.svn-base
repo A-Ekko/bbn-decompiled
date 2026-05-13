@@ -1,0 +1,312 @@
+package com.pst.core.line.command;
+
+public class Command {
+	
+	
+	/**
+	 * 线开通
+	 */
+	public final static String lineOpen="3001";
+	
+	/**
+	 * 玩家上线
+	 */
+	public final static String online="3002";
+	
+	/**
+	 * 玩家下线
+	 */
+	public final static String downline="3003";
+	
+	/**
+	 *好友上下线
+	 */
+	public final static String friendOnOrDownline="3004";
+	
+	/**
+	 * 玩家转换地图
+	 */
+	public final static String changeMap="3005";
+	
+	/**
+	 *创建队伍
+	 */
+	public final static String createTeam="3006";
+	
+	/**
+	 *加入队伍
+	 */
+	public final static String joinTeam="3007";
+	
+	/**
+	 *离开队伍
+	 */
+	public final static String leaveTeam="3008";
+	
+	/**
+	 * 改变喇叭数量
+	 */
+	public final static String changeBugle="3009";
+	
+	/**
+	 * 连接游戏
+	 */
+	public final static String connectGame="1000";
+	
+	/**
+	 * 聊天
+	 */
+	public final static String lineChat="1004";
+	
+	/**
+	 * 线信息
+	 */
+	public final static String lineInfo ="1185";
+	
+	/**
+	 * 系统消息 
+	 */
+	public final static String client_sysMessage = "1181";
+	
+	/**
+	 * 减少玩家喇叭
+	 */
+	public final static byte[] decreaseBugle={0x30,0x10};
+	
+	/**
+	 * 通知好友上下线
+	 */
+	public final static byte[] informRole={0x23,0x1};
+	
+	/**
+	 * 聊天
+	 */
+	public final static byte[] chat ={0x20,0x4};
+	
+	/**
+	 * 聊天错误信息
+	 */
+	public final static byte[] chatError = {0x21,0x78};
+	
+	/**
+	 *	线的人数信息
+	 */
+	public final static byte[] gameLineInfo ={0x25,0x4};
+	
+	/**
+	 * 通知各线玩家获取游戏线的信息
+	 */
+	public final static byte[] roleLineConnet={0x30,0x11};//3011
+	
+	/**
+	 * 有账号在别的线登录
+	 */
+	public final static byte[] otherLineAccountConnect={0x30,0x12};//3012
+	
+	/**
+	 * 心跳检查
+	 */
+	public final static byte[] heartBeat = {0x25, 0x2};// [2502] 心跳检查
+	
+	/**
+	 * 发系统返回信息
+	 */
+	public final static byte[] systemResult={0x20,0x7};//[2007]发系统返回信息
+	
+	public final static byte[] sysMessage = {0x23,0x11}; //[2311] 系统信息
+	
+	
+	
+	
+	
+	
+	/**
+	 * 创建公会
+	 */
+	public final static byte[] toGserver_createGuild={0x40,0x0};
+	
+	/**
+	 * 添加申请人
+	 */
+	public final static byte[] toGserver_addApplyJionGuild={0x40,0x1};
+	
+	/**
+	 * 添加玩家进入公会
+	 */
+	public final static byte[] toGserver_addGuildRole={0x40,0x2};
+	
+	/**
+	 * 添加玩家的公会信息
+	 */
+	public final static byte[] toGserver_addRoleGuild={0x40,0x3};
+	
+	/**
+	 * 拒绝玩家申请
+	 */
+	public final static byte[] toGserver_rejectApplyRole={0x40,0x4};
+	
+	/**
+	 * 剔除玩家出公会
+	 */
+	public final static byte[] toGserver_rejectRole={0x40,0x5};
+	
+	/**
+	 * 解散工会
+	 */
+	public final static byte[] toGserver_dismissGuild={0x40,0x6};
+	
+	/**
+	 * 修改公会信息
+	 */
+	public final static byte[] toGserver_changeGuildInfo={0x40,0x7};
+	
+	
+	/**
+	 * 创建职位
+	 */
+	public final static byte[] toGserver_careteTitle={0x40,0x8};
+	
+	
+	/**
+	 * 修改职位
+	 */
+	public final static byte[] toGserver_alertTitle={0x40,0x9};
+	
+	/**
+	 * 删除职位
+	 */
+	public final static byte[] toGserver_delTitle={0x40,0x10};
+	
+	/**
+	 * 查看玩家信息
+	 */
+	public final static byte[] toGserver_checkRoleInfo = {0x40,0x11};	
+
+	/**
+	 * 杀死怪物的广播
+	 */
+	public final static byte[] toGserver_radioKillMonster={0x40,0x12};
+
+	/**
+	 * 返查询的玩家基本信息
+	 */
+	public final static byte[] toGserver_findRoleInfo={0x40,0x13};
+	
+	/**
+	 * 战场状态
+	 */
+	public final static byte[] toGserver_warInfo={0x40,0x14};
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	/**
+	 * 创建公会
+	 */
+	public final static String fromGserver_createGuild="5000";
+	
+	/**
+	 * 添加公会申请人
+	 */
+	public final static String fromGserver_addApplyJionGuild="5001";
+	
+	/**
+	 * 添加玩家进入公会
+	 */
+	public final static String fromGserver_addGuildRole="5002";
+	
+	/**
+	 * 添加玩家的公会信息
+	 */
+	public final static String fromGserver_addRoleGuild="5003";
+	
+	/**
+	 * 拒绝玩家申请
+	 */
+	public final static String fromGserver_rejectApplyRole="5004";
+	
+	/**
+	 * 剔除玩家出公会
+	 */
+	public final static String fromGserver_rejectRole="5005";
+	
+	/**
+	 * 解散工会
+	 */
+	public final static String fromGserver_dismissGuild="5006";
+	
+	/**
+	 * 修改公会信息
+	 */
+	public final static String fromGserver_changeGuildInfo="5007";
+	
+	
+	/**
+	 * 创建职位
+	 */
+	public final static String fromGserver_careteTitle="5008";
+	
+	
+	/**
+	 * 修改职位
+	 */
+	public final static String fromGserver_alertTitle="5009";
+	
+	/**
+	 * 删除职位
+	 */
+	public final static String fromGserver_delTitle="5010";
+	
+	/**
+	 * 查看玩家信息
+	 */
+	public final static String fromGserver_checkRoleInfo = "5011";
+
+	
+	/**
+	 * 杀死怪物的广播
+	 */
+	public final static String fromGserver_radioKillMonster="5012";
+	
+	/**
+	 * 查询玩家的基本信息
+	 */
+	public final static String fromGserver_findRoleInfo="5013";
+	
+	/**
+	 * 战场状态
+	 */
+	public final static String fromGserver_warInfo="5014";
+	
+	/**
+	 * 小喇叭
+	 */
+	public final static String fromGserver_horn = "5016";
+
+}

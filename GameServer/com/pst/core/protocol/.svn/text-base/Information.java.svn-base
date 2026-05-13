@@ -1,0 +1,86 @@
+package com.pst.core.protocol;
+
+public class Information {
+	private int pt;//权限令牌
+    private int roleId;//用户ID
+    private String type;//信息类型
+    private byte[] data;//信息数据
+    
+    /**
+     * 初始化信息类
+     * @param pt 权限令牌
+     * @param userId 用户ID
+     * @param type 信息类型
+     * @param data 信息数据
+     */
+	public Information(int pt, int roleId,String type, byte[] data) {
+		this.pt = pt;
+		this.roleId = roleId;
+		this.type = type;
+		this.data = data;
+	}
+	
+	/**
+	 * 获取 用户Id
+	 * @return 用户Id
+	 */
+	public int getRoleId() {
+		return roleId;
+	}
+	
+	/**
+	 * 设置 用户Id
+	 * @param userId 用户Id
+	 */
+	public void setRoleId(int roleId) {
+		this.roleId = roleId;
+	}
+	
+	/**
+	 * 获取 权限令牌
+	 * @return 权限令牌
+	 */
+	public int getPt() {
+		return pt;
+	}
+	
+	/**
+	 * 设置 权限令牌
+	 * @param pt 权限令牌
+	 */
+	public void setPt(int pt) {
+		this.pt = pt;
+	}
+	
+	/**
+	 * 获取 信息类型
+	 * @return 信息类型
+	 */
+	public String getType() {
+		return type;
+	}
+	
+	/**
+	 * 设置 信息类型
+	 * @param type 信息类型
+	 */
+	public void setType(String type) {
+		this.type = type;
+	}
+	
+	/**
+	 * 获取 信息数据
+	 * @return 信息数据
+	 */
+	public byte[] getData() {
+		return data;
+	}
+	
+	/**
+	 * 设置 信息数据
+	 * @param data 信息数据
+	 */
+	public void setData(byte[] data) {
+		this.data = data;
+	}
+}

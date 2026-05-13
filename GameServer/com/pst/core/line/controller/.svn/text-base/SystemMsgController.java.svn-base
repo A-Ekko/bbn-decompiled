@@ -1,0 +1,76 @@
+package com.pst.core.line.controller;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.apache.mina.core.session.IoSession;
+
+import com.pst.core.line.command.CommandWrapper;
+import com.pst.core.line.entity.Line;
+import com.pst.core.line.entity.Player;
+import com.pst.core.line.store.SystemStore;
+
+public class SystemMsgController {
+	private CommandWrapper commandWrapper=new CommandWrapper();
+	private Logger logger=Logger.getLogger(SystemMsgController.class);
+	/**
+	 * 系统消息
+	 * @param message		消息
+	 * @param senderId		发送者ID
+	 * @param flag			true 成功   false 失败
+	 */
+	public void sysMessage(byte[] message,int senderId,boolean flag,IoSession session)
+	{
+		byte[] cmdBytes=commandWrapper.sysMessage(message);
+		String result="发送系统消息成功";
+		List<Integer> receivers = new ArrayList<Integer>();
+		receivers.add(senderId);
+		if(flag){
+			//List<Integer> list = roleContorller.getOnlineRoleId();
+			//MessageWrapper.messageWrapper.sysMessage(message, list);
+			Player player;
+			Iterator<Integer> it=SystemStore.players.keySet().iterator();
+			logger.info("玩家数量:"+SystemStore.players.size());
+			Integer id;
+			while(it.hasNext()){
+				id=it.next();
+                player=SystemStore.players.get(id);
+                if(player!=null){
+                	if(player.getClientSession()!=null){
+                		logger.info("向玩家["+player.getId()+" : "+player.getName()+"]发送系统信息");
+                		player.getClientSession().write(cmdBytes);
+                	}
+                }
+			}
+		}else{
+			result="发送系统消息失败";
+		}
+		byte[] data=commandWrapper.systemResult(result);
+		session.write(data);
+		//MessageWrapper.messageWrapper.sendSysResult(result, receivers);
+	}
+	
+	/**
+	 * 垮线播报信息
+	 * @param session
+	 * @param data
+	 */
+	public void radioMonster(IoSession session,byte[] data){
+		Line line;
+		IoSession temp;
+		byte[] cmdBytes=commandWrapper.radioMonster(data);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line!=null){
+				temp=line.getSession();
+				if(temp!=null && temp!=session)
+				{
+					temp.write(cmdBytes);
+					logger.info("通知线["+line.getId()+"]跨线播报信息");
+				}
+			}
+		}
+	}
+}

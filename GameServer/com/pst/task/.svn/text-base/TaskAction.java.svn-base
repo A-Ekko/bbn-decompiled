@@ -1,0 +1,109 @@
+package com.pst.task;
+
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import com.pst.task.timerTask.BillTask;
+import com.pst.task.timerTask.BillWealth;
+import com.pst.task.timerTask.PlayerOnlineCount;
+import com.pst.task.timerTask.RoleGiftTask;
+
+public class TaskAction {
+	
+	/**
+	 * 统计地图中所有玩家
+	 */
+	public void playerOnlineByMap(){
+		Calendar cal=Calendar.getInstance();
+		cal.add(Calendar.HOUR_OF_DAY,1);
+		
+		int year=cal.get(Calendar.YEAR);
+		int month=cal.get(Calendar.MONTH);
+		int day=cal.get(Calendar.DAY_OF_MONTH);
+		int hour=cal.get(Calendar.HOUR_OF_DAY);
+		
+		cal.set(year, month, day, hour, 0, 0);		
+	
+		long period=60*60*1000;//隔一个小时执行一次
+		Timer timer=new Timer();
+		TimerTask task=new PlayerOnlineCount();
+		timer.schedule(task, cal.getTime(), period);
+	}
+	
+	/**
+	 * 人物礼包
+	 */
+	public void taskClearGiftAction()
+	{
+		int hour=0;
+		Calendar calendar=Calendar.getInstance();
+		calendar.add(Calendar.DATE, 1);
+		
+		int year=calendar.get(Calendar.YEAR);
+		int month=calendar.get(Calendar.MONTH);
+		int day=calendar.get(Calendar.DAY_OF_MONTH);
+		
+		calendar.set(year,month,day,hour,0,0);
+		
+		Date startDate=calendar.getTime();//开始执行时间
+		long period=60*60*24*1000;//执行周期,每多少毫秒执行行一次
+		
+		Timer timer=new Timer();
+		TimerTask task=new RoleGiftTask();
+		
+		timer.schedule(task, startDate,period);
+	}
+	
+	/**
+	 * 等级-竞技 排行榜
+	 */
+	public void taskAction(){		
+		Calendar calendar = Calendar.getInstance();
+		/*
+		 * 暂时不用
+			calendar.add(Calendar.DATE,1);//加一天时间
+			
+			int year=calendar.get(Calendar.YEAR);
+			int month=calendar.get(Calendar.MONTH);
+			int day=calendar.get(Calendar.DAY_OF_MONTH);
+			//int hour=calendar.get(Calendar.HOUR_OF_DAY);
+			//int minute=calendar.get(Calendar.MINUTE);
+			//int second=calendar.get(Calendar.SECOND);
+			
+			int hour=2;//凌晨2点启动(凌晨2点第一次执行)
+			calendar.set(year, month, day, hour, 0, 0);
+		*/
+		
+		Date startDate=calendar.getTime();//开始执行时间
+		//long period=60*60*24*1000;//执行周期,每多少毫秒执行行一次
+		long period=5*60*1000;//执行周期,每多少毫秒执行行一次(暂时定为每5分钟执行一次)
+		
+		Timer timer=new Timer();
+		TimerTask task=new BillTask();
+		
+		timer.schedule(task,startDate,period);		
+	}
+	
+	/**
+	 * 财富
+	 */
+	public void wealthAction(){
+		Calendar calendar=Calendar.getInstance();
+		calendar.add(Calendar.DATE,1);
+		
+		int year=calendar.get(Calendar.YEAR);
+		int month=calendar.get(Calendar.MONTH);
+		int day=calendar.get(Calendar.DAY_OF_MONTH);
+		
+		int hour=2;
+		calendar.set(year,month,day,hour,0,0);
+		
+		long period=24*60*60*1000;
+		
+		Timer timer=new Timer();
+		TimerTask task=new BillWealth();
+		timer.schedule(task, calendar.getTime(),period);
+	}
+}

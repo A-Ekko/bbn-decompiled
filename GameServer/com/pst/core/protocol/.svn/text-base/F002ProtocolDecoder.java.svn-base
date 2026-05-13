@@ -1,0 +1,95 @@
+package com.pst.core.protocol;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Vector;
+
+import org.apache.log4j.Logger;
+import org.apache.mina.core.buffer.IoBuffer;
+import org.apache.mina.core.session.IoSession;
+import org.apache.mina.filter.codec.CumulativeProtocolDecoder;
+import org.apache.mina.filter.codec.ProtocolDecoderOutput;
+
+public class F002ProtocolDecoder extends CumulativeProtocolDecoder {
+
+	private Logger Loger = Logger.getLogger("F002ProtocolDecoder");
+	private ProtocolF002 Protocol = new ProtocolF002();
+
+	// Flash安全策略返回XML
+	private String flashSecurityString = "<?xml version=\"1.0\"?><cross-domain-policy><allow-access-from domain=\"*\" to-ports=\"*\"/></cross-domain-policy>\0";
+
+	// Flash安全策略请求头部
+	private byte[] flashSecurityHeader = new byte[] { 60, 112, 111, 108, 105,99, 121, 45, 102, 105, 108, 101, 45, 114, 101, 113, 117, 101, 115,116, 47, 62 };
+
+	/**
+	 * 参数in：用户请求信息全存在这里，读数据就从in这里读。
+	 * 参数out：用来输出处理后的数据到Filter的下一个过滤器，如果没有过滤器了就输出到WebHandler，这里有点和
+	 * servelt的过滤器类似。利用out.write(Object object);这个函数可以把数据传到下一个Filter。我们可以自己定义
+	 * 一个对象，我们假设为Request，用它来传递消息，那末这里就可以写成out.write(new RequsetMessage());
+	 * 如果这个方法返回false，就是说当前逻辑包还没接收完（也就是当前的IoBuffer并没有包含足够的数据），需要再次
+	 * 执行decode方法（再次获取新的IoBuffer），用来获取足够的数据。如果返回值为true就表示可以不执行decode方
+	 * 法了，但是要激活handler方法，必须要调用out.write方法。
+	 */
+	public boolean doDecode(IoSession session, IoBuffer in,ProtocolDecoderOutput pdout) {
+		int in_limit = in.limit();
+		in.position(0);
+
+		byte[] prebytes = (byte[]) session.getAttribute("LastBuffer");
+		session.removeAttribute("LastBuffer");
+
+		byte[] readbyte = null;
+		
+		
+		int writepos = 0;// 记录当前写数据的位置
+		if (prebytes != null) {
+			//System.out.println("前面遗漏有数据...........");
+			// this.Loger.debug("PreBytes len:"+prebytes.length);
+			readbyte = new byte[in_limit + prebytes.length];
+			System.arraycopy(prebytes, 0, readbyte, 0, prebytes.length);
+			writepos += prebytes.length;
+		} else {
+			//System.out.println("前面没有遗漏数据");
+			readbyte = new byte[in_limit];
+		}
+		
+		int i = 0;
+		Vector parseCmds = null;
+		HashMap singleCmd = null;
+
+		while (in.hasRemaining()) {
+			byte[] inbytes = in.array();// 返回此缓冲区的底层实现数组
+			System.arraycopy(inbytes, 0, readbyte, writepos, in_limit);
+			writepos += in_limit;
+
+			parseCmds = this.Protocol._parseBytes(readbyte);
+			
+
+			for (i = 0; i < parseCmds.size(); i++) {
+				singleCmd = (HashMap) parseCmds.get(i);
+				if (singleCmd.get("DataComplete").toString().equals("1")) {
+					pdout.write((byte[]) singleCmd.get("CmdData"));
+				} else {
+					session.removeAttribute("LastBuffer");
+					session.setAttribute("LastBuffer", (byte[]) singleCmd.get("CmdData"));
+				}
+			}
+
+			if (parseCmds.size() == 0) {
+				// 测试是否flash安全策略请求
+				byte[] flashbyte = new byte[this.flashSecurityHeader.length];
+				System.arraycopy(inbytes, 0, flashbyte, 0, flashbyte.length);
+				if (Arrays.equals(flashbyte, this.flashSecurityHeader)) {
+					session.write(this.flashSecurityString.getBytes());
+					session.close(true);
+				}
+			}
+
+			parseCmds.clear();
+			in.position(in_limit);
+		}
+
+		in.position(in.position());
+		in.limit(in.limit());
+		return true;
+	}
+}

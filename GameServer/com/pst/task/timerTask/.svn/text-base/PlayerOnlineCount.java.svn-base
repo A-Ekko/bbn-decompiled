@@ -1,0 +1,52 @@
+package com.pst.task.timerTask;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Iterator;
+import java.util.List;
+import java.util.TimerTask;
+
+import org.apache.log4j.Logger;
+
+import com.pst.core.line.store.SystemStore;
+import com.pst.db.ConnectionPoolManager;
+
+public class PlayerOnlineCount extends TimerTask {
+	private Logger logger=Logger.getLogger(PlayerOnlineCount.class);
+	@Override
+	public void run() {
+		Connection con = ConnectionPoolManager.getConnectionPool().getConnection();
+		Statement stmt = null;
+		try {
+			stmt=con.createStatement();
+			Iterator it=SystemStore.linemaps.keySet().iterator();
+			long currTime=System.currentTimeMillis()/1000;
+			while(it.hasNext())
+			{
+				String sId=(String)it.next();
+				List<Integer> scenePlayerNum=SystemStore.linemaps.get(sId);
+				if(scenePlayerNum!=null && scenePlayerNum.size()>0)
+				{
+					String[] lineStr=sId.split("-");
+					int line=Integer.parseInt(lineStr[0]);
+					int mapId=Integer.parseInt(lineStr[1]);
+					String mapSql="insert into statistics_map_role_num(save_time,map_id,line,role_number) values ("+currTime+","+mapId+","+line+","+scenePlayerNum.size()+")";
+					stmt.addBatch(mapSql);
+				}
+			}
+			stmt.executeBatch();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}finally{
+			try{
+				if(stmt!=null)stmt.close();
+				if(con!=null)con.close();
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+		}
+		logger.info("统计一个地图内玩家的数量");
+	}
+
+}

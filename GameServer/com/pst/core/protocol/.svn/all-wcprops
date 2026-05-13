@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/chuxian/!svn/ver/9/server/gline/src/com/pst/core/protocol
+END
+F002ProtocolCodecFactory.java
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/svn/chuxian/!svn/ver/9/server/gline/src/com/pst/core/protocol/F002ProtocolCodecFactory.java
+END
+F002ProtocolDecoder.java
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/svn/chuxian/!svn/ver/9/server/gline/src/com/pst/core/protocol/F002ProtocolDecoder.java
+END
+Protocol.java
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/chuxian/!svn/ver/9/server/gline/src/com/pst/core/protocol/Protocol.java
+END
+Information.java
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/chuxian/!svn/ver/9/server/gline/src/com/pst/core/protocol/Information.java
+END
+F002ProtocolEncoder.java
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/svn/chuxian/!svn/ver/9/server/gline/src/com/pst/core/protocol/F002ProtocolEncoder.java
+END
+ProtocolF002.java
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/chuxian/!svn/ver/9/server/gline/src/com/pst/core/protocol/ProtocolF002.java
+END

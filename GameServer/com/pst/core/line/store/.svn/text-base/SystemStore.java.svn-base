@@ -1,0 +1,45 @@
+package com.pst.core.line.store;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.mina.core.session.IoSession;
+
+import com.pst.core.line.entity.Line;
+import com.pst.core.line.entity.Player;
+import com.pst.core.line.entity.Team;
+
+public class SystemStore {
+	public final static Map<IoSession,Player> sessionPlayers=new HashMap<IoSession,Player>();
+	
+	//public final static Map<Integer,IoSession> playerSessions=new HashMap<Integer,IoSession>();
+	
+	public static String server;
+	
+	public final static Map<Integer,Player> players=new HashMap<Integer,Player>();
+	
+	public final static Map<String,Player> nplayers=new HashMap<String,Player>();
+	
+	public static List<Line> lines;
+	
+	
+	/**
+	 * 
+	 * <线地图,玩家列表>
+	 * 线地图 = "线ID-地图Id"
+	 */
+	public final static Map<String,List<Integer>> linemaps=new HashMap<String,List<Integer>>();
+	
+	/**
+	 * 队伍<队伍Id,队伍>
+	 * 队伍Id = "玩家所在的线-队伍Id"
+	 */
+	public final static Map<String,Team> teams=new HashMap<String,Team>();
+	
+	/**
+	 * 玩家队伍<玩家Id,队伍>
+	 */
+	public final static Map<Integer,Team> pteams=new HashMap<Integer,Team>();
+	
+}

@@ -1,0 +1,96 @@
+package com.pst.db;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.ResultSet;
+
+public class DBConnection {
+
+	/*
+	 * ¸üÐÂSQLÓï¾ä
+	 * sql: SQL Óï¾ä
+	 * */
+	public boolean excuteUpdate(String sql) throws SQLException 
+	{
+		Connection conn = ConnectionPoolManager.getConnectionPool()
+				.getConnection();
+		Statement stmt = null;
+
+		stmt = conn.createStatement();
+		int exs = stmt.executeUpdate(sql);
+		
+
+		if (stmt != null)
+		{
+			stmt.close();
+		}
+			
+		if (conn != null)
+		{
+			conn.close();
+		}
+
+		if (exs > 0) 
+		{
+			return true;
+		} 
+		else 
+		{
+			return false;
+		}
+
+	}
+	
+	/*
+	 * ´´½¨SQLÓï¾ä
+	 * sql: SQL Óï¾ä
+	 * */
+	public boolean excuteCreate(String sql) throws SQLException 
+	{
+		Connection conn = ConnectionPoolManager.getConnectionPool()
+				.getConnection();
+		Statement stmt = null;
+
+		stmt = conn.createStatement();
+		
+		boolean boo = stmt.execute(sql);
+		
+		
+
+		if (stmt != null)
+		{
+			stmt.close();
+		}
+			
+		if (conn != null)
+		{
+			conn.close();
+		}
+
+        return boo;
+
+	}
+	
+	/*
+	 * ´´½¨SQLÓï¾ä
+	 * sql: SQL Óï¾ä
+	 * */
+	public ResultSet excuteQuery(String sql) throws SQLException 
+	{
+		Connection conn = ConnectionPoolManager.getConnectionPool()
+				.getConnection();
+		Statement stmt = conn.createStatement();
+
+		ResultSet rs = stmt.executeQuery(sql);
+
+
+        return rs;
+
+	}
+	
+	
+
+	
+
+}

@@ -1,0 +1,17 @@
+package com.pst.task.timerTask;
+
+import java.util.TimerTask;
+
+import org.apache.log4j.Logger;
+
+import com.pst.db.dao.GRoleGiftDao;
+
+public class RoleGiftTask extends TimerTask {
+	private Logger logger=Logger.getLogger(RoleGiftTask.class);
+	@Override
+	public void run() {
+		new GRoleGiftDao().clearRoleGiftData();
+		//logger.info("执行人物礼包领取清空");
+	}
+
+}

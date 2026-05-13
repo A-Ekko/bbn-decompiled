@@ -1,0 +1,14 @@
+package com.pst.core.data;
+
+
+import java.util.Vector;
+
+
+/**
+ * 数据队列
+ * @author Wuava
+ *
+ */
+public class DataQueue{		
+	public static Vector<String> sqlQueue = new Vector<String>();
+}

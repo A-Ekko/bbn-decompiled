@@ -1,0 +1,68 @@
+package com.pst.core.line;
+
+import java.net.InetSocketAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.executor.ExecutorFilter;
+import org.apache.mina.transport.socket.SocketAcceptor;
+import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
+
+import com.pst.core.config.SystemConfig;
+import com.pst.core.protocol.F002ProtocolCodecFactory;
+import com.pst.core.shutdown.ShutdownHook;
+
+public class LineServerEngine 
+{
+	public static void main(String[] args)
+	{
+		if(args!=null && args.length>0 && "stop".equalsIgnoreCase(args[0].trim()))
+		{
+			SystemConfig.systemStop();
+			return;
+		}
+		
+		PropertyConfigurator.configure(System.getProperties().getProperty("user.dir")+"/resource/log4j.properties");
+		Logger logger = Logger.getLogger(LineServerEngine.class);
+		boolean flag=new InitLine().init();
+		if(flag)
+		{
+			//////////////////////协议通讯/////////////////////////////////
+        	
+    		SocketAcceptor acceptor = new NioSocketAcceptor(Runtime.getRuntime().availableProcessors()+1);
+    		
+    		//添加过滤器/////////////////////////////////////////////////////////////
+    		acceptor.getFilterChain().addFirst("protocol", new ProtocolCodecFilter(new F002ProtocolCodecFactory()));//添加过滤器
+    		
+    		ExecutorService exethreadPool = Executors.newCachedThreadPool();
+    		acceptor.getFilterChain().addLast("executor", new ExecutorFilter(exethreadPool));//添加过滤器[跟踪一个或多个异步任务执行状况]
+    		//添加过滤器/////////////////////////////////////////////////////////////
+    		
+    		acceptor.setDefaultLocalAddress(new InetSocketAddress(SystemConfig.port));
+    		acceptor.getSessionConfig().setReceiveBufferSize(2048);
+    		acceptor.getSessionConfig().setReadBufferSize(2048);
+    		acceptor.getSessionConfig().setWriteTimeout(10);
+    		//acceptor.getSessionConfig().setReaderIdleTime(10);
+    		acceptor.getSessionConfig().setReuseAddress(true);
+    		
+    		//设置句柄
+    		acceptor.setHandler(new ServerHandle());
+    		Runtime.getRuntime().addShutdownHook(new Thread(new ShutdownHook()));
+    		try
+    		{
+    			acceptor.bind();
+    			SystemConfig.acceptor=acceptor;
+    			logger.info("游戏线服务启动>>");
+    		}
+    		catch(Exception e)
+    		{
+    			acceptor.unbind();
+    			e.printStackTrace();
+    		}
+        	//////////////////////协议通讯/////////////////////////////////
+		}
+	}
+}

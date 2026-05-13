@@ -1,0 +1,35 @@
+package com.pst.db;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+
+import org.logicalcobwebs.proxool.ProxoolException;
+import org.logicalcobwebs.proxool.configuration.PropertyConfigurator;
+
+public class ConnectionPool {
+
+	private String connectionName = "proxool.mysql";// 连接名称
+
+	/**
+	 * 初始化连接池
+	 * @param configFile     配置文件
+	 * @param connectionName 连接名称
+	 */
+	public ConnectionPool(String configFile, String connectionName) {
+		this.connectionName = connectionName;
+		try {
+			PropertyConfigurator.configure(configFile);
+		} catch (ProxoolException pe) {
+			pe.printStackTrace();
+		}
+	}
+
+	/**
+	 * 获取数据库连接
+	 * 
+	 * @return
+	 */
+	public synchronized Connection getConnection() throws Exception{
+		return DriverManager.getConnection(connectionName);
+	}
+}

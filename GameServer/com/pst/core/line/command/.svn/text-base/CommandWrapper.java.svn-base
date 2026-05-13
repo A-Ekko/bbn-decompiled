@@ -1,0 +1,259 @@
+package com.pst.core.line.command;
+
+import java.io.UnsupportedEncodingException;
+
+import org.apache.mina.core.session.IoSession;
+
+import com.pst.core.amf.AmfData;
+import com.pst.core.line.command.info.ServerInfo;
+import com.pst.core.line.entity.Line;
+import com.pst.core.line.store.SystemStore;
+import com.pst.core.protocol.Protocol;
+import com.pst.core.protocol.ProtocolF002;
+
+public class CommandWrapper {
+	private ProtocolF002 protocol=new ProtocolF002();
+	private AmfData amfData=new AmfData();
+	
+	public byte[] decreaseBugle(int playerId,int bugleArticleId){
+		byte[] bugleBytes=protocol.FillBytes(protocol.ToUnsignBLenByte(bugleArticleId),4);
+		return protocol.packToServerProtocolBytes(bugleBytes, Command.decreaseBugle, 1, playerId);
+	}
+	
+	/**
+	 * 聊天
+	 * @param roleId 角色id
+	 * @param name 角色名称
+	 * @param type 聊天类型
+	 * @param contentBytes 聊天内容
+	 * @return 协议命令
+	 */
+	public byte[] chat(int roleId,String name,int type,byte[] contentBytes,String dataStr){
+		//角色id(4u) 聊天对象 [0,私聊,1:世界,2:场景,3:队伍,4:帮派,5:阵营] 角色名称长度(1u) 角色名称(Nu) 聊天内容(Nu)
+		byte[] roleBytes=protocol.FillBytes(protocol.ToUnsignBLenByte(roleId),4);
+		byte[] nameBytes=null;
+		try {nameBytes=name.getBytes(Protocol.PROTOCAL_ENCODEDEFAULT);} catch (UnsupportedEncodingException e) {e.printStackTrace();}
+		byte[] nameLenBytes=new byte[]{(byte)nameBytes.length};
+		
+		byte[] typeBytes = new byte[]{(byte)type};
+		
+		byte[] dataByte=null;
+		try{dataByte=dataStr.getBytes(Protocol.PROTOCAL_ENCODEDEFAULT);}catch(UnsupportedEncodingException e){e.printStackTrace();}
+		byte[] dataLenByte=new byte[]{(byte)dataByte.length};
+		
+		byte[] cmdBytes=new byte[roleBytes.length+typeBytes.length+nameLenBytes.length+nameBytes.length+dataLenByte.length+dataByte.length+contentBytes.length];
+		int destPos=0;
+		
+		System.arraycopy(roleBytes,0,cmdBytes,destPos, roleBytes.length);
+		destPos+=roleBytes.length;
+		
+		System.arraycopy(typeBytes,0,cmdBytes,destPos, typeBytes.length);
+		destPos+=typeBytes.length;
+		
+		System.arraycopy(nameLenBytes,0,cmdBytes,destPos, nameLenBytes.length);
+		destPos+=nameLenBytes.length;
+		
+		System.arraycopy(nameBytes,0,cmdBytes,destPos, nameBytes.length);
+		destPos+=nameBytes.length;
+		
+		System.arraycopy(dataLenByte, 0, cmdBytes, destPos, dataLenByte.length);
+		destPos+=dataLenByte.length;
+		
+		System.arraycopy(dataByte, 0, cmdBytes, destPos, dataByte.length);
+		destPos+=dataByte.length;
+		
+		System.arraycopy(contentBytes,0,cmdBytes,destPos, contentBytes.length);
+		
+		return protocol.packProtocolBytes(cmdBytes,Command.chat);
+	}
+	
+	
+
+	/**
+	 * 聊天错误信息
+	 * @param errorContent 错误信息内容
+	 * @return 协议命令
+	 */
+	public byte[] charError(String errorContent){
+		try {
+			byte[] errorContentBytes = errorContent.getBytes("UTF-8");
+			return protocol.packProtocolBytes(errorContentBytes, Command.chatError);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		return new byte[0];
+	}
+	
+	public byte[] informRole(int playerId,int type){
+		//上下线玩家ID(4u)    上下线(1u) 0:下线  1:上线
+		byte[] playerBytes=protocol.FillBytes(protocol.ToUnsignBLenByte(playerId),4);
+		byte[] typeBytes={(byte)type};
+		
+		byte[] cmdBytes=new byte[playerBytes.length+typeBytes.length];
+		int destPos=0;
+
+		System.arraycopy(playerBytes,0,cmdBytes,destPos, playerBytes.length);
+		destPos+=playerBytes.length;
+
+		System.arraycopy(typeBytes,0,cmdBytes,destPos, typeBytes.length);
+
+		return protocol.packProtocolBytes(cmdBytes,Command.informRole);
+	}
+	
+	/**
+	 * 发送线信息
+	 * @param serverInfo 线的信息内容
+	 * @return 协议命令
+	 */
+	public byte[] gameLineInfo(ServerInfo serverInfo){
+		return protocol.packProtocolBytes(amfData.getData(serverInfo),Command.gameLineInfo);
+	}
+	
+	/**
+	 * 通知各线玩家获取游戏线的信息
+	 * @param roleId 玩家角色Id
+	 * @return 协议命令
+	 */
+	public byte[] roleLineConnet(int roleId){
+		byte[] roleByte=protocol.FillBytes(protocol.ToUnsignBLenByte(roleId),4);
+		return protocol.packToServerProtocolBytes(roleByte, Command.roleLineConnet, 1, 1);
+	}
+	
+	/**
+	 * 通知各线 通知各线玩家获取游戏线的信息
+	 * @param account 玩家角色Id
+	 * @return 协议命令
+	 */
+	public byte[] otherLineAccountConnect(int account){
+		byte[] roleByte=protocol.FillBytes(protocol.ToUnsignBLenByte(account),4);
+		return protocol.packToServerProtocolBytes(roleByte, Command.otherLineAccountConnect, 1, 1);
+	}
+	
+	public byte[] createGuild(byte[] data){
+		return protocol.packToServerProtocolBytes(data, Command.toGserver_createGuild, 1, 1);
+	}
+	
+	public byte[] addApplyJionGuild(byte[] data){
+		return protocol.packToServerProtocolBytes(data, Command.toGserver_addApplyJionGuild, 1, 1);
+	}
+	
+	public byte[] addGuildRole(byte[] data){
+		return protocol.packToServerProtocolBytes(data, Command.toGserver_addGuildRole, 1, 1);
+	}
+	
+	public byte[] addRoleGuild(byte[] data){
+		return protocol.packToServerProtocolBytes(data, Command.toGserver_addRoleGuild, 1, 1);
+	}
+	
+	public byte[] rejectApplyRole(byte[] data){
+		return protocol.packToServerProtocolBytes(data, Command.toGserver_rejectApplyRole, 1, 1);
+	}
+	
+	public byte[] rejectRole(byte[] data){
+		return protocol.packToServerProtocolBytes(data, Command.toGserver_rejectRole, 1, 1);
+	}
+	
+	public byte[] checkRoleInfo(byte[] data){
+		return protocol.packToServerProtocolBytes(data, Command.toGserver_checkRoleInfo, 1, 1);
+	}
+	
+	public byte[] radioMonster(byte[] data){
+		return protocol.packToServerProtocolBytes(data, Command.toGserver_radioKillMonster, 1, 1);
+	}
+	
+	/**
+	 * 封装返回查询好的玩家基本信息
+	 * @param data
+	 * @return
+	 */
+	public byte[] findRoleInfo(byte[] data){
+		return protocol.packToServerProtocolBytes(data, Command.toGserver_findRoleInfo, 1, 1);
+	}
+	
+	/**
+	 * 解散工会
+	 * @param data
+	 * @return
+	 */
+	public byte[] dismissGuild(byte[] data){
+		return protocol.packToServerProtocolBytes(data, Command.toGserver_dismissGuild, 1, 1);
+	}
+	
+	/**
+	 * 修改公会信息
+	 * @param data
+	 * @return
+	 */
+	public byte[] changeGuildInfo(byte[] data){
+		return protocol.packToServerProtocolBytes(data, Command.toGserver_changeGuildInfo, 1, 1);
+	}
+	
+	
+	
+	
+	
+	/**
+	 * 创建职位
+	 * @param session
+	 * @param info
+	 */
+	public byte[] careteTitle(byte[] data){
+		return protocol.packToServerProtocolBytes(data, Command.toGserver_careteTitle, 1, 1);
+	}
+	
+	/**
+	 * 修改职位
+	 * @param session
+	 * @param info
+	 */
+	public byte[] alertTitle(byte[] data){
+		return protocol.packToServerProtocolBytes(data, Command.toGserver_alertTitle, 1, 1);
+	}
+	
+	/**
+	 * 删除职位
+	 * @param session
+	 * @param info
+	 */
+	public byte[] delTitle(byte[] data){
+		return protocol.packToServerProtocolBytes(data, Command.toGserver_delTitle, 1, 1);
+	}
+	
+	/**
+	 * 发送系统信息
+	 * @param result	返回内容
+	 * @return 协议命令
+	 */
+	public byte[] systemResult(String result){
+		byte[] cmdBytes =null;
+		try{
+			cmdBytes=result.getBytes(Protocol.PROTOCAL_ENCODEDEFAULT);
+		}catch(UnsupportedEncodingException e){
+			e.printStackTrace();
+		}
+		return protocol.packProtocolBytes(cmdBytes,Command.systemResult);
+	}
+	
+	  /**
+	   * 系统消息
+	   * @param message
+	   * @return
+	   */
+	  public byte[] sysMessage(byte[] message){
+		  byte[] totalByte = new byte[message.length];
+		  
+		  int poset=0;
+		  System.arraycopy(message, 0, totalByte, poset, message.length);
+		  
+		  return protocol.packProtocolBytes(totalByte, Command.sysMessage);
+	  }
+	  
+	  /**
+	   * 改变战场状态
+	   * @param data
+	   * @return
+	   */
+	  public byte[] warInfo(byte[] data){
+		  return protocol.packToServerProtocolBytes(data, Command.toGserver_warInfo, 1, 1);
+	  }
+}

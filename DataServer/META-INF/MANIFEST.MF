@@ -1,0 +1,26 @@
+Manifest-Version: 1.0
+Created-By: Fat Jar Eclipse Plug-In
+Main-Class: com.pst.server.DBServer
+
+
+Name: org/apache/log4j/
+Implementation-Title: log4j
+Implementation-Version: 1.2.7
+Implementation-Vendor: "Apache Software Foundation"
+
+
+Name: common
+Specification-Title: JDBC
+Specification-Version: 3.0
+Specification-Vendor: Sun Microsystems Inc.
+Implementation-Title: MySQL Connector/J
+Implementation-Version: 3.1.11
+Implementation-Vendor: MySQL AB
+
+
+
+
+
+
+
+

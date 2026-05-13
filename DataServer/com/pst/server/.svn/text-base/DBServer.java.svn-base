@@ -1,0 +1,23 @@
+package com.pst.server;
+
+import org.apache.log4j.PropertyConfigurator;
+
+import com.pst.config.SystemConfig;
+import com.pst.core.Console;
+import com.pst.core.InitSystem;
+import com.pst.core.shutdown.ShutdownHook;
+
+public class DBServer {
+	public static void main(String[] args) {
+		if(args!=null && args.length>0 && "stop".equalsIgnoreCase(args[0].trim())){
+			SystemConfig.systemStop();
+			return;
+		}
+		PropertyConfigurator.configure(System.getProperties().getProperty("user.dir")+ "/resource/log4j.properties");
+		
+		if(new InitSystem().action()){
+			Runtime.getRuntime().addShutdownHook(new Thread(new ShutdownHook()));
+			new Console().console();
+		}
+	}
+}

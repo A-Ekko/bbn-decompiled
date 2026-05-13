@@ -1,0 +1,143 @@
+package com.pst.core.amf;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
+
+import flex.messaging.io.SerializationContext;
+import flex.messaging.io.amf.Amf3Input;
+import flex.messaging.io.amf.Amf3Output;
+
+/**
+ * AMF flex和java的数据类装换
+ * @author wuava
+ *
+ */
+public class AmfData {
+	
+	/**
+	 * flex字节数据数据转化为java类实体
+	 * @param data flex字节数据数
+	 * @return java类实体
+	 */
+	public Object readData(byte[] data){
+		Object obj=null;
+		Amf3Input amfin=new Amf3Input(new SerializationContext());
+		InputStream bIn = new ByteArrayInputStream(decompressBytes(data));
+		amfin.setInputStream(bIn);
+		try
+		{
+			obj=amfin.readObject();
+		}
+		catch (ClassNotFoundException e)
+		{
+			e.printStackTrace();
+		} 
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+		return obj;
+	}
+	
+	/**
+	 * 根据java类实例转化为flex字节数据
+	 * @param obj java类实例转化
+	 * @return flex字节数据
+	 */
+	public byte[] getData(Object obj){
+		
+		//SerializationContext serializationContext = new SerializationContext();
+		
+		// 序列化amf3对象
+		Amf3Output amfout = new Amf3Output(new SerializationContext());
+		
+		
+
+		// 实现了一个输出流，其中的数据被写入一个 byte 数组。
+		ByteArrayOutputStream byteoutStream = new ByteArrayOutputStream();
+
+		// 将byteoutStream产生的数组流导入到DataOutputStream流中
+		DataOutputStream dataoutstream = new DataOutputStream(byteoutStream);
+		
+		// 设置流的编码格式为amf3
+		amfout.setOutputStream(dataoutstream);
+
+		try {
+			amfout.writeObject(obj);// 实际上是将map对象写入到dataoutstream流中
+			
+			dataoutstream.flush();// 清空缓存
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return compressBytes(byteoutStream.toByteArray());
+	}
+	
+	/**
+	 * 压缩
+	 * @param input 需要压缩的字节数据
+	 * @return 压缩后的字节数据
+	 */
+	public byte[] compressBytes(byte[] input) {
+		int cachesize = 1024;
+		Deflater compresser = new Deflater();
+		compresser.reset();
+		compresser.setInput(input);
+		compresser.finish();
+		byte output[] = new byte[0];
+		ByteArrayOutputStream o = new ByteArrayOutputStream(input.length);
+		try {
+			byte[] buf = new byte[cachesize];
+			int got;
+			while (!compresser.finished()) {
+				got = compresser.deflate(buf);
+				o.write(buf, 0, got);
+			}
+			output = o.toByteArray();
+		} finally {
+			try {
+				o.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return output;
+	}
+	
+	/**
+	 * 解压
+	 * @param input 需要解压的字节数据
+	 * @return 解压后的字节数据
+	 */
+	public byte[] decompressBytes(byte[] input) {
+		int cachesize = 1024;
+		Inflater decompresser = new Inflater();
+		byte output[] = new byte[0];
+		
+		decompresser.reset();
+		decompresser.setInput(input);
+		ByteArrayOutputStream o = new ByteArrayOutputStream(input.length);
+		try {
+			byte[] buf = new byte[cachesize];
+			int got;
+			while (!decompresser.finished()) {
+				got = decompresser.inflate(buf);
+				o.write(buf, 0, got);
+			}
+			output = o.toByteArray();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				o.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return output;
+	}
+}

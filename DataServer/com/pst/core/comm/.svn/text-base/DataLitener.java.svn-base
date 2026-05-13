@@ -1,0 +1,45 @@
+package com.pst.core.comm;
+
+import java.net.InetSocketAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.filter.executor.ExecutorFilter;
+import org.apache.mina.transport.socket.SocketAcceptor;
+import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
+
+import com.pst.config.SystemConfig;
+import com.pst.core.protocol.F002ProtocolCodecFactory;
+
+public class DataLitener {
+	public void litener(){
+		//////////////////////协议通讯/////////////////////////////////
+		SocketAcceptor acceptor = new NioSocketAcceptor(Runtime.getRuntime().availableProcessors()+1);
+		
+		//添加过滤器/////////////////////////////////////////////////////////////
+		acceptor.getFilterChain().addFirst("protocol", new ProtocolCodecFilter(new F002ProtocolCodecFactory()));//添加过滤器
+		
+		ExecutorService exethreadPool = Executors.newCachedThreadPool();
+		acceptor.getFilterChain().addLast("executor", new ExecutorFilter(exethreadPool));//添加过滤器[跟踪一个或多个异步任务执行状况]
+		//添加过滤器/////////////////////////////////////////////////////////////
+		
+		acceptor.setDefaultLocalAddress(new InetSocketAddress(SystemConfig.port));
+		acceptor.getSessionConfig().setReceiveBufferSize(2048);
+		acceptor.getSessionConfig().setReadBufferSize(2048);
+		acceptor.getSessionConfig().setWriteTimeout(10);
+		//acceptor.getSessionConfig().setReaderIdleTime(10);
+		acceptor.getSessionConfig().setReuseAddress(true);
+		
+		//设置句柄
+		acceptor.setHandler(new ServerHandle());
+
+		try{
+			acceptor.bind();
+			SystemConfig.acceptor=acceptor;
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+    	//////////////////////协议通讯/////////////////////////////////
+	}
+}

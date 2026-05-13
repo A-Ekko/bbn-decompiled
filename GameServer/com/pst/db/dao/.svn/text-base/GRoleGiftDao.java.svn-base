@@ -1,0 +1,36 @@
+package com.pst.db.dao;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import com.pst.db.ConnectionPoolManager;
+
+public class GRoleGiftDao {
+
+	public void clearRoleGiftData()
+	{
+		Connection conn=ConnectionPoolManager.getConnectionPool().getConnection();		
+		Statement stmt=null;
+		try
+		{
+			stmt=conn.createStatement();
+			String sql="delete from role_gift_step";
+			stmt.executeUpdate(sql);
+		}
+		catch(SQLException e)
+		{
+			e.printStackTrace();
+		}finally
+		{
+			try{			
+				if(stmt!=null)stmt.close();
+				if(conn!=null)conn.close();
+			}catch(Exception e)
+			{
+				e.printStackTrace();	
+			}
+		}
+	}
+	
+}

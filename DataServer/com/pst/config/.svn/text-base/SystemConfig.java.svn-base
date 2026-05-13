@@ -1,0 +1,87 @@
+package com.pst.config;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+
+import org.apache.mina.transport.socket.SocketAcceptor;
+
+public class SystemConfig {
+	
+	/**
+	 * 端口
+	 */
+	public static int port;
+
+	/**
+	 * 账号
+	 */
+	public static int account;
+	
+	/**
+	 * 权令
+	 */
+	public static int powertoken;
+	
+	/**
+	 * 批量处理的最大数
+	 */
+	public static int batchMax;
+	
+	/**
+	 * 数据库保存执行的频率(单位毫秒)
+	 */
+	public static long runRate=5000;
+	
+	/**
+	 * 端口数据接收监听器
+	 */
+	public static SocketAcceptor acceptor;
+	
+	/**
+	 * 允许链接的IP列表
+	 */
+	public final static List<String> concentipList=new ArrayList<String>();
+	
+	
+	
+	public static void writePId(String PID) {
+		Properties prop = new Properties();
+		String filePath=System.getProperties().getProperty("user.dir")+"/resource/run.properties";
+		try {
+			InputStream fis = new FileInputStream(filePath);
+			// 从输入流中读取属性列表（键和元素对）
+			prop.load(fis);
+			// 调用 Hashtable 的方法 put。使用 getProperty 方法提供并行性。
+			// 强制要求为属性的键和值使用字符串。返回值是 Hashtable 调用 put 的结果。
+			OutputStream fos = new FileOutputStream(filePath);
+			prop.setProperty("PID", PID);
+			// 以适合使用 load 方法加载到 Properties 表中的格式，
+			// 将此 Properties 表中的属性列表（键和元素对）写入输出流
+			prop.store(fos, "save 'PID' value");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static void systemStop(){
+		Properties prop = new Properties();
+		String filePath=System.getProperties().getProperty("user.dir")+"/resource/run.properties";
+		try {
+			InputStream fis = new FileInputStream(filePath);
+			prop.load(fis);
+			String pid=prop.getProperty("PID");
+			if(pid!=null){
+				String cmd="kill -15 "+pid;
+				Runtime.getRuntime().exec(cmd);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+}

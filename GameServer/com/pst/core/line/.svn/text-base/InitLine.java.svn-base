@@ -1,0 +1,68 @@
+package com.pst.core.line;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
+import org.dom4j.Element;
+import org.dom4j.io.SAXReader;
+
+import com.pst.core.config.SystemConfig;
+import com.pst.core.line.entity.Line;
+import com.pst.core.line.store.SystemStore;
+import com.pst.core.util.VirtualMachine;
+import com.pst.db.ConnectionPoolManager;
+import com.pst.db.dao.LineDao;
+import com.pst.db.dao.MapDao;
+import com.pst.db.dao.ServerDao;
+import com.pst.task.TaskAction;
+
+
+public class InitLine {
+	public boolean init(){
+		SystemConfig.writePId(String.valueOf(VirtualMachine.getPid()));
+		
+		SAXReader reader = new SAXReader();
+		Document document=null;
+		try {
+			document = reader.read(new File(System.getProperties().getProperty("user.dir")+"/resource/line-config.xml"));
+		} catch (DocumentException e) {
+			e.printStackTrace();
+		}
+		Element element=((Element)document.getRootElement()).element("port");
+
+		SystemConfig.port=Integer.parseInt(element.getText());
+		
+		SystemConfig.good=Integer.valueOf(((Element)document.getRootElement()).element("onlineStatusGood").getText().trim());
+		SystemConfig.bad=Integer.valueOf(((Element)document.getRootElement()).element("onlineStatusBad").getText().trim());
+		//System.err.println("SystemConfig.good="+SystemConfig.good+" SystemConfig.bad="+SystemConfig.bad);
+		
+		ConnectionPoolManager.initConnectionPool();
+		SystemStore.server=new ServerDao().getServerName();
+		//SystemStore.lines=new ArrayList<Line>();
+		SystemStore.lines=new LineDao().getLines();
+		
+		TaskAction taskAction=new TaskAction();
+		//wzy 2010-9-8 开设每一个小时记录一次每张地图的人数线程
+		taskAction.playerOnlineByMap();		
+		//wzy 2010-9-9 定时删除人物礼包表数据
+		taskAction.taskClearGiftAction();
+		//wzy 2010-9-9 定时更新排行榜数据
+		taskAction.taskAction();
+		//wzy 2010-9-14 定时更新财富排行榜
+		taskAction.wealthAction();
+		
+		new Thread(new ClientListener()).start();
+
+		List<Integer> list=new MapDao().getMaps();
+		int i,j;
+		for(i=0;i<SystemStore.lines.size();i++){
+			for(j=0;j<list.size();j++){
+				SystemStore.linemaps.put(SystemStore.lines.get(i).getId()+"-"+list.get(j), new ArrayList<Integer>());			
+			}
+		}
+		return true;
+	}
+}

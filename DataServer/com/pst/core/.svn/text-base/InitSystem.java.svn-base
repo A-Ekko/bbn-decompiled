@@ -1,0 +1,49 @@
+package com.pst.core;
+
+import java.io.File;
+import java.util.List;
+
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
+import org.dom4j.Element;
+import org.dom4j.io.SAXReader;
+
+import com.pst.config.SystemConfig;
+import com.pst.core.comm.DataLitener;
+import com.pst.core.util.VirtualMachine;
+import com.pst.db.ConnectionPoolManager;
+
+public class InitSystem {
+	public boolean action(){
+		SystemConfig.writePId(String.valueOf(VirtualMachine.getPid()));
+		ConnectionPoolManager.initConnectionPool(System.getProperties().getProperty("user.dir")+ "/resource/proxool.properties", "proxool.mysql");
+		readXML();
+		new DataLitener().litener();
+		return true;
+	}
+	
+	 private void readXML(){
+		 SAXReader reader = new SAXReader();
+		 Document document=null;
+		 try {
+			 document = reader.read(new File(System.getProperties().getProperty("user.dir")+"/resource/data-config.xml"));
+		 } catch (DocumentException e) {
+			 e.printStackTrace();
+		 }
+		 
+		 SystemConfig.port=Integer.parseInt(document.getRootElement().element("port").getText().trim());
+		 SystemConfig.account=Integer.parseInt(document.getRootElement().element("account").getText().trim());
+		 SystemConfig.powertoken=Integer.parseInt(document.getRootElement().element("powertoken").getText().trim());
+		 SystemConfig.batchMax=Integer.parseInt(document.getRootElement().element("batchMax").getText().trim());
+		 SystemConfig.runRate=Long.parseLong(document.getRootElement().element("runRate").getText().trim());
+		 
+		 Element element=document.getRootElement().element("concent");
+		 List list=element.elements("ip");
+		 for(int i=0;i<list.size();i++){
+			 SystemConfig.concentipList.add(((Element)list.get(i)).getText().trim()); 
+		 }
+		 for(int i=0;i<SystemConfig.concentipList.size();i++){
+			 System.out.println(SystemConfig.concentipList.get(i));
+		 }
+	 }
+}

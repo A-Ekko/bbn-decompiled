@@ -1,0 +1,10 @@
+package com.pst.core.comm;
+
+/**
+ * 客户端命令(游戏客户端=>游戏服务器)
+ * @author wuava
+ *
+ */
+public class ClientCommand {
+	public final static String datatransmit= "3000";//数据传送
+}

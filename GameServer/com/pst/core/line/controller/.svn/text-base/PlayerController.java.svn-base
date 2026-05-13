@@ -1,0 +1,369 @@
+package com.pst.core.line.controller;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+import org.apache.mina.core.session.IoSession;
+
+import com.pst.core.line.command.CommandWrapper;
+import com.pst.core.line.entity.Line;
+import com.pst.core.line.entity.Player;
+import com.pst.core.line.entity.Team;
+import com.pst.core.line.store.SystemStore;
+
+public class PlayerController {
+	private Logger logger=Logger.getLogger(PlayerController.class);
+	private CommandWrapper commandWrapper=new CommandWrapper();
+	
+	/**
+	 * 玩家上线
+	 * @param session
+	 * @param playerId
+	 * @param name
+	 * @param guild
+	 * @param camp
+	 * @param map
+	 * @param line
+	 * @param bugleNumber
+	 * @param friends
+	 * @param userId
+	 */
+	public void online(IoSession session,int playerId,String name,int guild,int camp,int map,int line,Map<Integer,Integer> bugleNumber,List<Integer> friends,int userId){
+		Player player=SystemStore.players.get(playerId);
+		synchronized (SystemStore.players) {
+			if(player==null){
+				player=new Player();
+				SystemStore.players.put(playerId,player);
+			}else{
+				synchronized (SystemStore.linemaps) {
+					List<Integer> linemap=SystemStore.linemaps.get(player.getLine()+"-"+player.getMap());
+					if(linemap!=null){
+						synchronized (linemap) {
+							linemap.remove(Integer.valueOf(playerId));
+						}
+					}
+				}
+			}
+			
+			synchronized (SystemStore.nplayers){
+				SystemStore.nplayers.put(name,player);
+			}
+			
+			synchronized (SystemStore.linemaps) {
+				List<Integer> linemap=SystemStore.linemaps.get(line+"-"+map);
+				if(linemap!=null){
+					synchronized (linemap) {
+						if(!linemap.contains(playerId)){
+							linemap.add(playerId);
+						}
+					}
+				}
+			}
+			
+			player.setBugles(bugleNumber);
+			player.setCamp(camp);
+			player.setGuild(guild);
+			player.setId(playerId);
+			player.setLine(line);
+			player.setMap(map);
+			player.setName(name);
+			player.setServiceSession(session);
+			player.setFriends(friends);
+			player.setUserId(userId);
+			
+			roleLineConnet(playerId,line);
+			
+			logger.info("玩家["+player.getId()+" ,"+player.getName()+"]上线");
+		}
+	}
+	
+	/**
+	 * 通知各线玩家获取游戏线的信息
+	 * @param account 玩家账号
+	 */
+	private void roleLineConnet(int playerId,int lineId){
+		Line line;
+		byte[] roleByte=commandWrapper.roleLineConnet(playerId);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line.getSession()!=null && line.getId()!=lineId){
+				try{
+					logger.info("通知线["+line.getId()+"]玩家["+playerId+"]在线["+lineId+"]上线");
+					line.getSession().write(roleByte);
+				}catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 通知各线玩家获取游戏线的信息
+	 * @param account 玩家账号
+	 */
+	private void otherLineAccountConnect(int account,int lineId){
+		Line line;
+		byte[] roleByte=commandWrapper.otherLineAccountConnect(account);
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(line.getSession()!=null && line.getId()!=lineId){
+				try{
+					logger.info("通知线["+line.getId()+"]玩家账号["+account+"]上线");
+					line.getSession().write(roleByte);
+				}catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	
+	/**
+	 * 连接游戏
+	 * @param playerId
+	 * @param session
+	 */
+	public void connectGame(int playerId,IoSession session){
+		if(playerId>0)
+		{
+			Player player=SystemStore.players.get(playerId);
+			
+			if(player!=null)
+			{
+				player.setClientSession(session);
+				//将登录玩家的上线消息发给全部好友
+				sendMsgToALLFriend(player,1);
+				//将好友在线的消息发给登录玩家
+				acceptOnlineFriendMsg(player,1);
+			}
+			else
+			{
+				synchronized (SystemStore.players) 
+				{
+					player=new Player();
+					player.setClientSession(session);
+					SystemStore.players.put(playerId, player);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 玩家下线
+	 * @param player
+	 */
+	public void downline(Player player){
+		if(player!=null){
+			synchronized (SystemStore.players) {
+				//将下线玩家消息发给全部好友
+				sendMsgToALLFriend(player,0);
+				
+				synchronized (SystemStore.linemaps) {
+					List<Integer> linemap=SystemStore.linemaps.get(player.getLine()+"-"+player.getMap());
+					if(linemap!=null){
+						synchronized (linemap) {
+							linemap.remove(Integer.valueOf(player.getId()));
+						}
+					}
+				}
+				synchronized (SystemStore.nplayers){
+					SystemStore.nplayers.remove(player.getName());
+				}
+				
+//				synchronized (SystemStore.playerSessions) {
+//					SystemStore.playerSessions.remove(playerId);
+//				}
+				if(player.getClientSession()!=null)player.getClientSession().close(false);
+			
+			}
+		}
+	}
+	
+	/**
+	 * 好友上下线
+	 * @param playerId 上下线玩家
+	 * @param receiver 好友列表
+	 * @param type 
+	 */
+	public void friendOnOrDownline(int playerId,Integer[] receiver,int type){
+		byte[] data=commandWrapper.informRole(playerId, type);
+		Player player;
+		for(int i=0;i<receiver.length;i++){
+			player=SystemStore.players.get(receiver[i]);
+			if(player!=null && player.getClientSession()!=null){
+				player.getClientSession().write(data);
+			}
+		}
+	}
+	
+	/**
+	 * 组队
+	 * @param masterId 组队者Id
+	 * @param partnerId 队友Id
+	 * @param teamId
+	 */
+	public void createTeam(int masterId,int partnerId,String teamId){
+		Player player=SystemStore.players.get(masterId);
+		if(player!=null){
+			Team team=new Team();
+			team.getMembers().add(masterId);
+			team.getMembers().add(partnerId);
+			synchronized (SystemStore.teams) {
+				synchronized (SystemStore.pteams) {
+					SystemStore.teams.put(player.getLine()+"-"+teamId, team);
+					SystemStore.pteams.put(masterId, team);
+					SystemStore.pteams.put(partnerId, team);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 加入队伍
+	 * @param playerId
+	 * @param teamId
+	 */
+	public void joinTeam(int playerId,String teamId){
+		Player player=SystemStore.players.get(playerId);
+		if(player!=null){
+			Team team=SystemStore.teams.get(player.getLine()+"-"+teamId);
+			if(team!=null){
+				synchronized (team.getMembers()) {
+					if(!team.getMembers().contains(playerId)){
+						team.getMembers().add(playerId);
+					}
+					synchronized (SystemStore.pteams) {
+						SystemStore.pteams.put(playerId, team);
+					}
+				}
+			}
+			
+		}
+	}
+	
+	/**
+	 * 离开队伍
+	 * @param playerId
+	 * @param teamId
+	 */
+	public void leaveTeam(int playerId,String teamId){
+		Player player=SystemStore.players.get(playerId);
+		if(player!=null){
+			Team team=SystemStore.teams.get(player.getLine()+"-"+teamId);
+			if(team!=null){
+				synchronized (team.getMembers()) {
+					team.getMembers().remove(Integer.valueOf(playerId));
+					synchronized (SystemStore.pteams) {
+						SystemStore.pteams.remove(playerId);
+					}
+					if(team.getMembers().size()==0){
+						SystemStore.teams.remove(player.getLine()+"-"+teamId);
+						for(int i=0;i<team.getMembers().size();i++){
+							SystemStore.pteams.remove(team.getMembers().get(i));
+						}
+					}
+				}
+			}
+			
+		}
+	}
+	
+	
+	
+	/**
+	 * 玩家切换地图
+	 * @param playerId
+	 * @param map
+	 */
+	public void changeMap(IoSession session,int playerId,int map){
+		Player player=SystemStore.players.get(playerId);
+		if(player!=null){
+			synchronized (SystemStore.linemaps) {
+				List<Integer> linemap=SystemStore.linemaps.get(player.getLine()+"-"+player.getMap());
+				if(linemap!=null){
+					synchronized (linemap) {
+						linemap.remove(Integer.valueOf(playerId));
+					}
+				}
+				linemap=SystemStore.linemaps.get(player.getLine()+"-"+map);
+				if(linemap!=null){
+					synchronized (linemap) {
+						if(!linemap.contains(playerId)){
+							linemap.add(playerId);
+						}
+					}
+				}
+			}
+			player.setMap(map);
+			player.setServiceSession(session);
+			//logger.info("玩家["+playerId+"]当前地图["+map+"]");
+		}
+	}
+	
+	/**
+	 * 玩家喇叭的数量
+	 * @param playerId
+	 * @param bugleNumber
+	 */
+	public void bugleNumber(int playerId,Map<Integer,Integer> bugleNumber){
+		Player player=SystemStore.players.get(playerId);
+		if(player!=null){
+			Iterator<Integer> it=bugleNumber.keySet().iterator();
+			Integer id;
+			Integer newNum;
+			while(it.hasNext()){
+				id=(Integer)it.next();
+				newNum=bugleNumber.get(id);
+				Integer oldNum=player.getBugles().get(id);
+				if(oldNum!=null){
+					Integer totalNum=newNum+oldNum;
+					player.getBugles().put(id, totalNum);
+				}else{
+					player.getBugles().put(id, newNum);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 将登录玩家的上线消息发给全部在线好友
+	 * @param player	上下线玩家实体
+	 * @param type		上下线标识(0:下线1:上线)
+	 */
+	private void sendMsgToALLFriend(Player player,int type){
+		List<Integer> friends=player.getFriends();
+		if(friends!=null && friends.size()>0){
+			byte[] ownBytes=commandWrapper.informRole(player.getId(), type);
+			Player friendEntity;
+			for(int i=0;i<friends.size();i++){
+				friendEntity=SystemStore.players.get(friends.get(i));
+				if(friendEntity!=null && friendEntity.getClientSession()!=null){
+					//logger.info("玩家["+player.getId()+" 向好友["+friendEntity.getId()+" : "+friendEntity.getName()+"]发送 : "+type+"(0:下线1:上线)]消息");
+					friendEntity.getClientSession().write(ownBytes);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 将在线好友的消息发给登录玩家
+	 * @param player	上下线玩家实体
+	 * @param type		上下线标识(0:下线1:上线)
+	 */
+	private void acceptOnlineFriendMsg(Player player,int type){
+		List<Integer> friends=player.getFriends();
+		if(friends!=null && friends.size()>0){
+			Player friendEntity;
+			for(int i=0;i<friends.size();i++){
+				friendEntity=SystemStore.players.get(friends.get(i));
+				if(friendEntity!=null){
+					//logger.info("玩家["+player.getId()+" 接收好友["+friendEntity.getId()+" : "+friendEntity.getName()+"]]发送在线消息");
+					byte[] friendBytes=commandWrapper.informRole(friendEntity.getId(), type);
+					player.getClientSession().write(friendBytes);
+				}
+			}
+		}
+	}
+}

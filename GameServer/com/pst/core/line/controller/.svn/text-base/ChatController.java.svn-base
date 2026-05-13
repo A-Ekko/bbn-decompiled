@@ -1,0 +1,181 @@
+package com.pst.core.line.controller;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map.Entry;
+
+import org.apache.log4j.Logger;
+
+import com.pst.core.line.command.CommandWrapper;
+import com.pst.core.line.entity.Player;
+import com.pst.core.line.entity.Team;
+import com.pst.core.line.store.SystemStore;
+
+
+public class ChatController {
+	private CommandWrapper commandWrapper=new CommandWrapper();
+	private Logger logger=Logger.getLogger(ChatController.class);
+	
+	public void chat(int playerId,int type,String target,byte[] content,String dataStr)
+	{
+		//聊天类型[0,私聊,1:世界,2:场景,3:队伍,4:帮派,5:阵营]	聊天对象名称长度(1u)	聊天对象名称(xu) 信息名称长度(1u) 信息名称(xu) 聊天内容(xu)
+		Player player=SystemStore.players.get(playerId);
+		if(player!=null)
+		{
+			if(type==0)
+			{//私聊
+				Player targetPlayer=SystemStore.nplayers.get(target);
+				if(targetPlayer!=null){
+					if(targetPlayer.getClientSession()!=null)targetPlayer.getClientSession().write(commandWrapper.chat(playerId, player.getName(), type, content,dataStr));
+					//logger.info("["+player.getId()+" : "+player.getName()+"]与玩家["+targetPlayer.getId()+" : "+targetPlayer.getName()+"]私聊成功");
+				}else if(player.getClientSession()!=null){
+					player.getClientSession().write(commandWrapper.charError("玩家["+target+"]不在线"));
+					//logger.info("["+playerId+"]与玩家["+target+"]私聊时Socket连接不通");
+				}
+			}
+			
+			else if(type==1)
+			{//世界
+				if(player.getBugles().size()>0)
+				{
+					if(player.getClientSession()!=null)
+					{
+						int bugleId=Integer.parseInt(target);
+						Integer num = player.getBugles().get(bugleId);//世界聊天时 聊天对象名称 为喇叭的ID
+						if(num!=null && num>0)
+						{
+							player.getServiceSession().write(commandWrapper.decreaseBugle(playerId,bugleId));
+							
+							byte[] data=commandWrapper.chat(playerId, player.getName(), type, content,dataStr);
+							
+							Iterator<Integer> it=SystemStore.players.keySet().iterator();
+							Player temp;
+							Integer id;
+							while(it.hasNext())
+							{
+								id=it.next();
+			                    temp=SystemStore.players.get(id);
+			                    if(temp!=null && temp.getId()!=playerId)
+			                    {
+			                    	//通知客户端
+			                    	if(temp.getClientSession()!=null)
+			                    	{
+			                    		temp.getClientSession().write(data);
+			                    		//logger.info("["+player.getId()+" : "+player.getName()+"]发送世界聊天信息给玩家["+temp.getId()+" : "+temp.getName()+"]时发送成功");
+			                    	}
+			                    	else{
+			                    		//logger.info("["+player.getId()+" : "+player.getName()+"]发送世界聊天信息给玩家["+temp.getId()+" : "+temp.getName()+"]时Socket连接不通");
+			                    	}
+			                    }
+			                    else if(temp==null)
+			                    {
+			                    	//logger.info("["+player.getId()+" : "+player.getName()+"]发送世界聊天信息给玩家["+id+"]:"+temp);
+			                    }
+							}
+							player.getBugles().put(Integer.parseInt(target), num-1);
+						}
+						else{
+							//logger.info("玩家["+player.getId()+" : "+player.getName()+"]对世界聊天时喇叭数量不足1个");
+						}
+					}
+					else{
+						//logger.info("玩家["+player.getId()+" : "+player.getName()+"]对世界聊天时Socket连接不通");
+					}
+				}
+				else{
+					//logger.info("玩家["+player.getId()+" : "+player.getName()+"]对世界聊天时喇叭系统为空!");
+				}
+			}
+			else if(type==2){//场景
+				List<Integer> list=SystemStore.linemaps.get(player.getLine()+"-"+player.getMap());
+				Player temp;
+				if(list!=null){
+					byte[] data=commandWrapper.chat(playerId, player.getName(), type, content,dataStr);
+					for(int i=0;i<list.size();i++){
+						temp=SystemStore.players.get(list.get(i));
+						if(temp!=null && temp.getId()!=playerId && temp.getCamp()==player.getCamp()){
+	                    	//通知客户端
+							if(temp.getClientSession()!=null){
+								temp.getClientSession().write(data);
+							}
+						}else if(temp==null){
+							logger.info("玩家["+player.getId()+" : "+player.getName()+"]发送场景聊天对象不存在");
+						}
+					}
+				}
+			}else if(type==3){//队伍
+				Team team=SystemStore.pteams.get(playerId);
+				if(team!=null){
+					Player temp;
+					byte[] data=commandWrapper.chat(playerId, player.getName(), type, content,dataStr);
+					for(int i=0;i<team.getMembers().size();i++){
+						temp=SystemStore.players.get(team.getMembers().get(i));
+						if(temp!=null && temp.getId()!=playerId){
+	                    	//通知客户端
+							if(temp.getClientSession()!=null){
+								temp.getClientSession().write(data);
+								//logger.info("玩家["+player.getId()+" : "+player.getName()+"]对场景中的["+temp.getId()+" : "+temp.getName()+"]发送队伍聊天成功");
+							}
+						}else{
+							//logger.info("玩家["+player.getId()+" : "+player.getName()+"]发送队伍聊天对象不存在");
+						}
+					}
+				}else{
+					//logger.info("玩家["+playerId+"]目前没有队伍,不能作队伍聊天的操作");
+				}
+			}else if(type==4){//帮派
+				
+			}else if(type==5){//阵营
+				Iterator<Integer> it=SystemStore.players.keySet().iterator();
+				Player temp;
+				Integer id;
+				byte[] data=commandWrapper.chat(playerId, player.getName(), type, content,dataStr);
+				while(it.hasNext()){
+					id=it.next();
+                    temp=SystemStore.players.get(id);
+                    if(temp!=null && temp.getId()!=playerId && temp.getCamp()==player.getCamp()){
+                    	//通知客户端
+                    	if(temp.getClientSession()!=null){
+                    		temp.getClientSession().write(data);
+                    		//logger.info("玩家["+player.getId()+" : "+player.getName()+"]对场景中的["+temp.getId()+" : "+temp.getName()+"]发送阵营聊天成功");
+                    	}
+                    }else if(temp==null){
+                    	//logger.info("玩家["+player.getId()+" : "+player.getName()+"]发送阵营聊天对象不存在");
+                    }
+				}				
+			}
+		}
+		else
+		{
+			//logger.info("进行聊天操作时玩家["+playerId+"]不存在GLine的功能数据中");
+		}
+	}
+	
+	/**
+	 * 小喇叭
+	 * @param type
+	 * @param target
+	 * @param content
+	 * @param dataStr
+	 */
+	public void horn(int playerId,int type,String target,byte[] content,String dataStr)
+	{
+		byte[] data = commandWrapper.chat(playerId, target, type, content,dataStr);
+		
+		for(Entry<Integer,Player> entry : SystemStore.players.entrySet())
+		{
+			if(entry.getValue().getId() != playerId)
+			{
+				if(entry.getValue().getClientSession() == null)
+				{
+					logger.info("[Chat][horn][Info:palyerID:'"+entry.getValue().getId()+"'][Fail:客户端Session为null]");
+					continue;
+				}
+				
+				entry.getValue().getClientSession().write(data);
+			}		
+		}
+	}
+	
+	
+}

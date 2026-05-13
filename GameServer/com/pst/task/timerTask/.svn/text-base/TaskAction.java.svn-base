@@ -1,0 +1,30 @@
+package com.pst.task.timerTask;
+
+import java.util.Calendar;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import com.pst.task.timerTask.PlayerOnlineCount;
+
+public class TaskAction {
+	
+	/**
+	 * 统计地图中所有玩家
+	 */
+	public void playerOnlineByMap(){
+		Calendar cal=Calendar.getInstance();
+		cal.add(Calendar.HOUR_OF_DAY,1);
+		
+		int year=cal.get(Calendar.YEAR);
+		int month=cal.get(Calendar.MONTH);
+		int day=cal.get(Calendar.DAY_OF_MONTH);
+		int hour=cal.get(Calendar.HOUR_OF_DAY);
+		
+		cal.set(year, month, day, hour, 0, 0);		
+	
+		long period=60*60*1000;//隔一个小时执行一次
+		Timer timer=new Timer();
+		TimerTask task=new PlayerOnlineCount();
+		timer.schedule(task, cal.getTime(), period);
+	}
+}

@@ -1,0 +1,318 @@
+package com.pst.db.dao;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+
+import com.pst.core.config.SystemConfig;
+import com.pst.db.ConnectionPoolManager;
+
+public class BillDao {
+	private CountMaxRoleDao countMaxRoleDao=new CountMaxRoleDao();
+	/**
+	 * 玩家
+	 * @param size
+	 */
+	public void bill(int size){
+		/*
+		 *为了减少每次对人物进行排行时的数据库操作 
+		 */
+		if(SystemConfig.totalRole<size){
+			int number=countMaxRoleDao.getMaxRoleSize();
+			size=number>size?size:number;
+			SystemConfig.totalRole=number;
+			System.out.println("进行人物排行时查询的人物数为["+SystemConfig.totalRole+"]");
+		}
+		String selectSql="SELECT r.id,r.name,r.level,r.sex,r.popsinger_id,r.camp_id FROM role AS r ORDER BY r.level DESC,r.EXP DESC LIMIT 0,"+size+"";
+		
+//		Calendar calendar = Calendar.getInstance();
+//		int year=calendar.get(Calendar.YEAR);
+//		int month=calendar.get(Calendar.MONTH);
+//		int date=calendar.get(Calendar.DAY_OF_MONTH);
+//		calendar.set(year, month, date, 0, 0, 0);
+//		long time=calendar.getTimeInMillis();
+		
+		long time=System.currentTimeMillis();
+		int index=1;
+		int roleId;
+		String name;
+		int level;
+		int sex;
+		int popsingerId;
+		int campId;
+		
+		Connection con =ConnectionPoolManager.getConnectionPool().getConnection();
+		Statement stmt=null;
+		ResultSet rs=null;
+		String	insertSql=null;
+		try {
+			stmt=con.createStatement();
+			rs=stmt.executeQuery(selectSql);
+			while(rs.next()){
+				roleId=rs.getInt("r.id");
+				name=rs.getString("r.name");
+				level=rs.getInt("r.level");
+				sex=rs.getInt("r.sex");
+				popsingerId=rs.getInt("r.popsinger_id");
+				campId=rs.getInt("r.camp_id");
+				if(insertSql==null){
+					insertSql="INSERT INTO bill_role(bill_index,bill_time,role_id,role_name,role_level,role_sex,role_popsinger_id,camp_id)VALUES(" +
+							(index++)+","+time+","+roleId+",'"+name+"',"+level+","+sex+","+popsingerId+","+campId+")";
+				}else{
+					insertSql+=",("+(index++)+","+time+","+roleId+",'"+name+"',"+level+","+sex+","+popsingerId+","+campId+")";
+				}
+//				stmt.addBatch(insertSql);
+			}
+//			stmt.executeBatch();
+			if(insertSql!=null){
+				stmt.executeUpdate(insertSql);
+			}
+			//System.err.println("index="+index);
+		}catch (SQLException e){
+			e.printStackTrace();
+		}finally{
+			try{
+				if(rs!=null)rs.close();
+				if(stmt!=null)stmt.close();
+				if(con!=null)con.close();
+			}catch (SQLException e){
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	/**
+	 * 财富
+	 * @param size
+	 */
+	public void wealth(int size){
+		/*
+		 *为了减少每次对财富进行排行时的数据库操作 
+		 */
+		if(SystemConfig.totalRole<size){
+			int number=countMaxRoleDao.getMaxRoleSize();
+			size=number>size?size:number;
+			SystemConfig.totalRole=number;
+			System.out.println("进行财富排行时查询的人物数为["+SystemConfig.totalRole+"]");
+		}
+		String selectSql="select r.id,r.name,r.popsinger_id,r.camp_id,r.money,r.level from role as r order by r.money desc limit 0,"+size;
+		
+		int roleId;
+		String roleName;
+		int pop;
+		int camp;
+		long money;
+		int level;
+		
+		long systime=System.currentTimeMillis();
+		int index=1;
+		
+		Connection con =ConnectionPoolManager.getConnectionPool().getConnection();
+		Statement stmt=null;
+		ResultSet rs=null;
+		String insertSql=null;
+		try{
+			stmt=con.createStatement();
+			rs=stmt.executeQuery(selectSql);
+			while(rs.next()){
+				roleId=rs.getInt("r.id");
+				roleName=rs.getString("r.name");
+				pop=rs.getInt("r.popsinger_id");
+				camp=rs.getInt("r.camp_id");
+				level=rs.getInt("r.level");
+				money=rs.getLong("r.money");
+				if(insertSql==null){
+					insertSql="insert into bill_wealth(bill_index,bill_time,role_id,role_name,popsinger_id,camp_id,coin,role_level)" +
+						"values("+(index++)+","+systime+","+roleId+",'"+roleName+"',"+pop+","+camp+","+money+","+level+")";
+				}else{
+					insertSql+=",("+(index++)+","+systime+","+roleId+",'"+roleName+"',"+pop+","+camp+","+money+","+level+")";
+				}
+				
+//				stmt.addBatch(insertSql);
+			}
+//			stmt.executeBatch();
+			if(insertSql!=null){
+				stmt.executeUpdate(insertSql);
+			}
+		}catch(SQLException e){
+			e.printStackTrace();
+		}finally{
+			try{
+				if(rs!=null)rs.close();
+				if(stmt!=null)stmt.close();
+				if(con!=null)con.close();
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	/**
+	 * 竞技
+	 * @param size
+	 */
+	public void arena(int size){
+		/*
+		 *为了减少每次对财富进行排行时的数据库操作 
+		 */
+		if(SystemConfig.totalRole<size){
+			int number=countMaxRoleDao.getMaxRoleSize();
+			size=number>size?size:number;
+			SystemConfig.totalRole=number;
+			System.out.println("进行竞技排行时查询的人物数为["+SystemConfig.totalRole+"]");
+		}
+		String selectSql="select r.id,r.name,r.level,r.popsinger_id,r.arena_integral,r.arena_round,r.arena_match_won,r.camp_id from role as r where r.arena_integral>0 order by r.arena_integral desc limit 0,"+size;
+		
+		int roleId,pop,integral,level,winCount,totalCount,lostCount,percent,camp;
+		String roleName;
+		
+		long systime=System.currentTimeMillis();
+		int index=1;
+		
+		Connection con =ConnectionPoolManager.getConnectionPool().getConnection();
+		Statement stmt=null;
+		ResultSet rs=null;
+		String insertSql=null;
+		try{
+			stmt=con.createStatement();
+			rs=stmt.executeQuery(selectSql);
+			while(rs.next()){
+				roleId=rs.getInt("r.id");
+				roleName=rs.getString("r.name");
+				pop=rs.getInt("r.popsinger_id");
+				winCount=rs.getInt("r.arena_match_won");
+				level=rs.getInt("r.level");
+				integral=rs.getInt("r.arena_integral");
+				totalCount=rs.getInt("r.arena_round");
+				camp=rs.getInt("r.camp_id");
+				lostCount=totalCount-winCount;
+				percent=countPercent(winCount, totalCount);
+				if(insertSql==null){
+					insertSql="insert into bill_arena(bill_index,bill_time,role_id,role_name,popsinger_id,win_count,integral,role_level,lost_count,percent,camp_id)" +
+						"values("+(index++)+","+systime+","+roleId+",'"+roleName+"',"+pop+","+winCount+","+integral+","+level+","+lostCount+","+percent+","+camp+")";
+				}else{
+					insertSql+=",("+(index++)+","+systime+","+roleId+",'"+roleName+"',"+pop+","+winCount+","+integral+","+level+","+lostCount+","+percent+","+camp+")";
+				}
+				
+//				stmt.addBatch(insertSql);
+			}
+//			stmt.executeBatch();
+			if(insertSql!=null){
+				stmt.executeUpdate(insertSql);
+			}
+		}catch(SQLException e){
+			e.printStackTrace();
+		}finally{
+			try{
+				if(rs!=null)rs.close();
+				if(stmt!=null)stmt.close();
+				if(con!=null)con.close();
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	
+	/**
+	 * 闯关统计排行
+	 * @param size 统计条数
+	 */
+	public void burst(int size)
+	{
+		if(SystemConfig.totalRole<size)
+		{
+			int number=countMaxRoleDao.getMaxRoleSize();
+			size=number>size?size:number;
+			SystemConfig.totalRole=number;
+			System.out.println("进行闯关排行时查询的人物数为["+SystemConfig.totalRole+"]");
+		}
+		
+		String selectSql = "select t3.role_id, t3.burst_name, t3.burst_level,t4.name as role_name,t4.level as role_level ,t4.camp_id as role_camp ,t4.popsinger_id as role_popr  from (select t1.role_id, t2.name as burst_name, t2.suggest_level as burst_level,t2.suggest_level from `role_burst` as t1 left join `map_burst_base` as t2 on t2.id = t1.burst_id where t1.success_times>0 order by t2.suggest_level desc,t2.level_dif desc) as t3 left join role as t4 on t4.id = t3.role_id group by t3.role_id order by t3.suggest_level desc limit 0,"+size;
+		
+		int role_id,burst_level,role_level,role_camp,role_popr;
+		String burst_name,role_name;
+		
+		int index=1;
+		
+		Connection con =ConnectionPoolManager.getConnectionPool().getConnection();
+		Statement stmt=null;
+		ResultSet rs=null;
+		String insertSql=null;
+		
+		String deleteSql=null;
+		
+		try
+		{
+			stmt=con.createStatement();
+		    
+			deleteSql = "DELETE FROM bill_burst";			
+			stmt.execute(deleteSql);
+			
+			rs=stmt.executeQuery(selectSql);	    
+		    	
+			ArrayList<String> sqlArry = new ArrayList<String>();
+			
+		    while(rs.next())
+		    {
+		    	role_id = rs.getInt("role_id");
+		    	burst_level = rs.getInt("burst_level");
+		    	role_level = rs.getInt("role_level");
+		    	burst_name = rs.getString("burst_name");
+		    	role_name = rs.getString("role_name");
+		    	role_camp = rs.getInt("role_camp");
+		    	role_popr = rs.getInt("role_popr");
+		    	insertSql = "insert into bill_burst(role_id,burst_name,burst_level,role_name,role_level,role_camp,role_popr) values("+role_id+",'"+burst_name+"',"+burst_level+",'"+role_name+"',"+role_level+","+role_camp+","+role_popr+")";		    	
+		    	
+		    	sqlArry.add(insertSql);		    	
+		    }
+		    
+		    
+		    stmt = con.createStatement();
+		    
+		    for(int i = 0 ; i < sqlArry.size() ; i++)
+		    {
+		    	stmt.execute(sqlArry.get(i));
+		    }
+			
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();					
+		}
+		finally
+		{
+			try
+			{
+				if(rs!=null)rs.close();
+				if(stmt!=null)stmt.close();
+				if(con!=null)con.close();
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();
+			}
+		}
+		
+
+		
+	}
+	
+	
+	
+	
+	private int countPercent(int winCount,int totalCount){
+		float percent=((float)winCount/(float)totalCount)*100;
+		return (int)percent;
+	}
+
+	public static void main(String[] ags)
+	{
+		ConnectionPoolManager.initConnectionPool();
+		BillDao dao=new BillDao();
+		dao.burst(100);
+	}
+
+}

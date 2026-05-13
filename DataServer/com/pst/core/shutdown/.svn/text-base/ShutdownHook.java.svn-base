@@ -1,0 +1,41 @@
+package com.pst.core.shutdown;
+
+import org.apache.log4j.Logger;
+
+import com.pst.config.SystemConfig;
+import com.pst.core.data.DataQueue;
+
+public class ShutdownHook implements Runnable{
+
+	@Override
+	public void run() {
+		Logger logger=Logger.getLogger(ShutdownHook.class);
+		
+		logger.info("启动关闭进程....................");
+		check(logger);
+		unbind(logger);
+	}
+	
+	private void unbind(Logger logger){
+		try{
+			SystemConfig.acceptor.unbind();
+			logger.info("关闭端口数据接收监听器...........");
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void check(Logger logger){
+		while(true){
+			int size=DataQueue.sqlQueue.size();
+			if(size==0){
+				logger.info("现在队列中没有数据要保存,关闭系统!");
+				break;
+			}else{
+				logger.info("现在还有"+size+"条数据没有处理,等等数据处理完成");
+			}
+			try {Thread.sleep(1000);} catch (InterruptedException e) {e.printStackTrace();}
+		}
+	}
+
+}

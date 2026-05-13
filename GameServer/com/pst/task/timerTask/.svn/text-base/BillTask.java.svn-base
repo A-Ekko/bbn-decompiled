@@ -1,0 +1,21 @@
+package com.pst.task.timerTask;
+import java.util.TimerTask;
+
+import org.apache.log4j.Logger;
+
+import com.pst.db.dao.BillDao;
+
+
+public class BillTask extends TimerTask{
+	private BillDao billDao=new BillDao();
+	private Logger logger=Logger.getLogger(BillTask.class);
+	
+	@Override
+	public void run() {
+		billDao.bill(100);
+		billDao.arena(100);
+		billDao.burst(100);
+		//logger.info("执行排行榜统计");
+	}
+
+}

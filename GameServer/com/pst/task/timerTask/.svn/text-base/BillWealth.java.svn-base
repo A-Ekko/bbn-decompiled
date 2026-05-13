@@ -1,0 +1,19 @@
+package com.pst.task.timerTask;
+
+import java.util.TimerTask;
+
+import com.pst.db.dao.BillDao;
+
+/**
+ * ≤∆∏ª≈≈––
+ * @author wzy
+ */
+public class BillWealth extends TimerTask {
+	private BillDao billDao=new BillDao();
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		billDao.wealth(100);
+	}
+
+}

@@ -1,0 +1,29 @@
+package com.pst.db;
+
+public class ConnectionPoolManager {
+	private static ConnectionPool connPool;
+	
+	/**
+	 * 初始化连接池
+	 */
+	public static void initConnectionPool(){
+		if(connPool==null){
+			connPool = new ConnectionPool(System.getProperties().getProperty("user.dir")+"/resource/proxool.properties" ,"proxool.mysql");
+		}
+	}
+	
+	/**
+	 * 初始化连接池
+	 * @param configFile     配置文件
+	 * @param connectionName 连接名称
+	 */
+	public static void initConnectionPool(String configFile, String connectionName){
+		if(connPool==null){
+			connPool = new ConnectionPool(configFile ,connectionName);
+		}
+	}
+	
+	public static ConnectionPool getConnectionPool(){
+		return connPool;
+	}
+}

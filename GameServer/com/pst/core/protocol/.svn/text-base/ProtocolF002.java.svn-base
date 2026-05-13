@@ -1,0 +1,453 @@
+/**
+ * 090702:把用户ID(5u)拆分成 特殊数值位(1u)+把用户ID(5u)
+ * 			新增加 packToServerProtocolBytes(打包成对服务端的数据包)和packToClientProtocolBytes(打包成对客户端的数据包)
+ */
+
+package com.pst.core.protocol;
+
+import java.util.*;
+import org.apache.log4j.*;
+
+public class ProtocolF002 extends Protocol{
+
+	private byte[] PROTOCALHEAD = null;// 协议头
+	private int PROTOCAL_VERIFY_BYTELEN = 1;// 校验位长度
+	private int PROTOCAL_PACKLEN_BYTELEN = 2;// 表示包长度的位长度(用多少位来表示数据包长度)
+	private Logger loger = Logger.getLogger("ProtocalF002");
+
+	public ProtocolF002() {
+		this.PROTOCALHEAD = new byte[] { -16, 2 };// 初始化协议头
+	}
+
+	public Vector _parseBytes(byte[] _getbytes) {
+		Vector CmdBytes = new Vector();
+		HashMap singleCmd = null;
+		// singleCmd.put("DataComplete", "1");//数据接受完整性(1:完整,0:不完整)
+		// singleCmd.put("CmdData", Object);//接收到的数据部分
+		// singleCmd.put("Error", "");//错误信息
+
+		byte[] headtest = new byte[this.PROTOCALHEAD.length];
+		byte[] packlenbyte = new byte[this.PROTOCAL_PACKLEN_BYTELEN];// 数据包中截取到的本包长度
+		byte[] packbytes = null;
+		byte[] databytes = null;
+		int i = 0, j = 0, k = 0;
+		String verifynumstr = null;
+		byte packlenvertifybyte = 0;
+		int packlenverifyint = 0;
+		int packlen = 0;// 截取到的包长度
+
+		databytes = _getbytes;
+
+		for (i = 0; i < (databytes.length - this.PROTOCALHEAD.length
+				- this.PROTOCAL_VERIFY_BYTELEN - this.PROTOCAL_PACKLEN_BYTELEN);) {
+			System.arraycopy(databytes, i, headtest, 0,
+					this.PROTOCALHEAD.length);
+			if (!Arrays.equals(this.PROTOCALHEAD, headtest)) {
+				// 如果不是协议头
+				i++;
+				continue;
+			}
+
+			// 验证长度校验位
+			packlenvertifybyte = 0;
+			packlenvertifybyte = databytes[i + this.PROTOCALHEAD.length];
+			// 找到了,获取包的长度
+			System.arraycopy(databytes, i + this.PROTOCALHEAD.length
+					+ this.PROTOCAL_VERIFY_BYTELEN, packlenbyte, 0,
+					packlenbyte.length);
+			// 验证包长度是否有效
+			packlenverifyint = this.getProtocolPackLenVertify(packlenbyte);
+
+			if (packlenverifyint != packlenvertifybyte) {
+				// 校验到的长度与校验位不同
+				i++;
+				this.loger
+						.debug("BYTE VERIFY NOT THE SAME:(byte:"
+								+ packlenvertifybyte + ",int:"
+								+ packlenverifyint + ")");
+				this.loger.debug("DECEIVE BYTES:\r\n"
+						+ this.debugReciveByte(_getbytes, true)
+						+ "DECEIVE BYTES END\r\n");
+				continue;
+			}
+			// this.TM.TraceMsg("vbyte:"+packlenverifybyte);
+			packlen = Integer.parseInt(this.ByteToHexLen(packlenbyte), 16);
+			packbytes = null;
+
+			if (packlen == 0) {
+				// 居然收到长度是0的数据包?
+				this.loger.debug("PackageLen(0):"
+						+ this.debugReciveByte(databytes, true));
+				i++;
+				continue;
+			}
+
+			singleCmd = new HashMap();
+
+			if ((databytes.length - i) < (packlen + this.PROTOCALHEAD.length
+					+ packlenbyte.length + this.PROTOCAL_VERIFY_BYTELEN)) {
+				// 数据包没有接收完整，把接收到的数据暂时存储起来
+				this.loger.debug("{ProtocalF001->ParseBytes_cachedata:");
+				packbytes = new byte[databytes.length - i];
+				System.arraycopy(databytes, i, packbytes, 0, databytes.length
+						- i);
+				singleCmd.put("DataComplete", "0");// 数据接受完整性
+				singleCmd.put("CmdData", packbytes);// 接收到的数据部分
+				CmdBytes.add(singleCmd);
+				return CmdBytes;
+			} else {
+				// 数据包已完整接收
+				packbytes = new byte[packlen];
+				System.arraycopy(databytes, i + this.PROTOCALHEAD.length
+						+ packlenbyte.length + this.PROTOCAL_VERIFY_BYTELEN,
+						packbytes, 0, packlen);
+				singleCmd.put("DataComplete", "1");// 数据接受完整性
+				singleCmd.put("CmdData", packbytes);// 接收到的数据部分
+				CmdBytes.add(singleCmd);
+
+				i += this.PROTOCALHEAD.length + packlenbyte.length + packlen
+						+ this.PROTOCAL_VERIFY_BYTELEN;
+			}
+		}
+
+		if (_getbytes.length - i > 0) {
+			byte[] _remainBytes = new byte[_getbytes.length - i];
+			k = 0;
+			for (j = i; j < _getbytes.length; j++) {
+				_remainBytes[k] = _getbytes[j];
+				k++;
+			}
+		}
+
+		return CmdBytes;
+	}
+
+	/**
+	 * 解析协议
+	 * 
+	 * @param getbytes
+	 */
+	public Vector parseBytes(byte[] _getbytes) {
+		Vector CmdBytes = new Vector();
+		byte[] headtest = new byte[this.PROTOCALHEAD.length];
+		byte[] packlenbyte = new byte[this.PROTOCAL_PACKLEN_BYTELEN];// 数据包中截取到的本包长度
+		byte[] packbytes = null;
+		byte[] databytes = null;
+		int i = 0, j = 0, k = 0;
+		String verifynumstr = null;
+		byte packlenvertifybyte = 0;
+		int packlenverifyint = 0;
+		int packlen = 0;// 截取到的包长度
+
+		databytes = _getbytes;
+
+		for (i = 0; i < (databytes.length - this.PROTOCALHEAD.length
+				- this.PROTOCAL_VERIFY_BYTELEN - this.PROTOCAL_PACKLEN_BYTELEN);) {
+			System.arraycopy(databytes, i, headtest, 0,
+					this.PROTOCALHEAD.length);
+			if (!Arrays.equals(this.PROTOCALHEAD, headtest)) {
+				// 如果不是协议头
+				i++;
+				continue;
+			}
+
+			// 验证长度校验位
+			packlenvertifybyte = 0;
+			packlenvertifybyte = databytes[i + this.PROTOCALHEAD.length];
+			// 找到了,获取包的长度
+			System.arraycopy(databytes, i + this.PROTOCALHEAD.length
+					+ this.PROTOCAL_VERIFY_BYTELEN, packlenbyte, 0,
+					packlenbyte.length);
+			// 验证包长度是否有效
+			packlenverifyint = this.getProtocolPackLenVertify(packlenbyte);
+
+			if (packlenverifyint != packlenvertifybyte) {
+				// 校验到的长度与校验位不同
+				i++;
+				this.loger
+						.debug("BYTE VERIFY NOT THE SAME:(byte:"
+								+ packlenvertifybyte + ",int:"
+								+ packlenverifyint + ")");
+				this.loger.debug("DECEIVE BYTES:\r\n"
+						+ this.debugReciveByte(_getbytes, true)
+						+ "DECEIVE BYTES END\r\n");
+				continue;
+			}
+			// this.TM.TraceMsg("vbyte:"+packlenverifybyte);
+			packlen = Integer.parseInt(this.ByteToHexLen(packlenbyte), 16);
+			packbytes = null;
+
+			if (packlen == 0) {
+				// 居然收到长度是0的数据包?
+				this.loger.debug("PackageLen(0):"
+						+ this.debugReciveByte(databytes, true));
+				i++;
+				continue;
+			}
+
+			if ((databytes.length - i) < (packlen + this.PROTOCALHEAD.length
+					+ packlenbyte.length + this.PROTOCAL_VERIFY_BYTELEN)) {
+				// 数据包没有接收完整，把接收到的数据暂时存储起来
+				this.loger.debug("{ProtocalF001->ParseBytes_cachedata:");
+				packbytes = new byte[databytes.length - i];
+				System.arraycopy(databytes, i, packbytes, 0, databytes.length
+						- i);
+				return CmdBytes;
+			} else {
+				packbytes = new byte[packlen];
+				System.arraycopy(databytes, i + this.PROTOCALHEAD.length
+						+ packlenbyte.length + this.PROTOCAL_VERIFY_BYTELEN,
+						packbytes, 0, packlen);
+				CmdBytes.add(packbytes);
+
+				i += this.PROTOCALHEAD.length + packlenbyte.length + packlen
+						+ this.PROTOCAL_VERIFY_BYTELEN;
+			}
+		}
+
+		return CmdBytes;
+	}
+
+	/**
+	 * 获取包协议长度校验码
+	 * 
+	 * @param _packlen
+	 * @return
+	 */
+	public int getProtocolPackLenVertify(byte[] _packlen) {
+		int cmdlenvertify = 0;
+		int i = 0, j = 0;
+		String verifystr = null;
+		for (i = 0; i < _packlen.length; i++) {
+			verifystr = String.valueOf(this.ToUnsignByteInt(_packlen[i]));
+			for (j = 0; j < verifystr.length(); j++) {
+				// this.TM.TraceMsg("|"+j+","+verifystr+"|");
+				cmdlenvertify += Integer.parseInt(verifystr.substring(j, j + 1));
+			}
+		}
+
+		return cmdlenvertify;
+	}
+
+	/**
+	 * 把一个操作包装成一个向客户端发送的协议byte[],此方法为保留方法，保留兼容性
+	 * 
+	 * @param cmdBytes
+	 * @param actionBytes
+	 *            操作类型
+	 * @return
+	 */
+	public byte[] packProtocolBytes(byte[] cmdBytes, byte[] actionBytes) {
+		// 获取包内容长度
+		byte[] cmdlenbytes = this.FillBytes(this.ToUnsignBLenByte(cmdBytes.length + actionBytes.length), 2);
+		// this.TM.TraceMsg(this.debugReciveByte(this.ToUnsignBLenByte(cmdbytes.
+		// length+ActionBytes.length) ,true));System.exit(0);
+		byte[] returnbytes = new byte[cmdBytes.length+ this.PROTOCALHEAD.length + this.PROTOCAL_VERIFY_BYTELEN+ cmdlenbytes.length + actionBytes.length];
+
+		int writepos = 0;
+		// 写入协议头
+		System.arraycopy(this.PROTOCALHEAD, writepos, returnbytes, 0,this.PROTOCALHEAD.length);
+		writepos += this.PROTOCALHEAD.length;
+		// 写入长度校验位
+		returnbytes[this.PROTOCALHEAD.length] = (byte) this.getProtocolPackLenVertify(cmdlenbytes);
+		writepos++;
+		// 写入包长度信息
+		System.arraycopy(cmdlenbytes, 0, returnbytes, writepos,cmdlenbytes.length);
+		writepos += cmdlenbytes.length;
+		// 写入操作类型
+		System.arraycopy(actionBytes, 0, returnbytes, writepos,actionBytes.length);
+		writepos += actionBytes.length;
+		// 写入内容
+		if (cmdBytes.length > 0) {
+			System.arraycopy(cmdBytes, 0, returnbytes, writepos,cmdBytes.length);
+		}
+
+		this.loger.debug(this.debugReciveByte(returnbytes, true));
+
+		return returnbytes;
+	}
+	
+	/**
+	 * 把一个操作封装成对另一个服务器的数据包
+	 * @param cmdbytes
+	 * @param actionBytes
+	 * @param powertoken
+	 * @param accountid
+	 * @return
+	 */
+	public byte[] packToServerProtocolBytes(byte[] cmdbytes , byte[] actionBytes , int powertoken ,int accountid){
+		//{协议头(2u):F002}{(长度校验位):1u}{数据包长度(2u)}{通讯权令(2u)}{用户ID(4u)}{动作类型(2u)+包内容}
+		byte[] byte_powertoken = this.FillBytes(this.ToUnsignBLenByte(powertoken),2);
+		byte[] byte_accountid = this.FillBytes(this.ToUnsignBLenByte(accountid),4);
+		//获取包内容长度
+		byte[] cmdlenbytes = this.FillBytes(this.ToUnsignBLenByte(cmdbytes.length+actionBytes.length+byte_powertoken.length+byte_accountid.length) , 2);
+		
+		
+		
+		byte[] returnbytes = new byte[this.PROTOCALHEAD.length+this.PROTOCAL_VERIFY_BYTELEN+cmdlenbytes.length+byte_powertoken.length+byte_accountid.length+actionBytes.length+cmdbytes.length];
+		int writepos = 0;
+		//写入协议头
+		System.arraycopy(this.PROTOCALHEAD, 0, returnbytes, writepos, this.PROTOCALHEAD.length);
+		writepos += this.PROTOCALHEAD.length;
+		//写入长度校验位
+		returnbytes[writepos] = (byte)this.getProtocolPackLenVertify(cmdlenbytes);
+		writepos ++;
+		//写入包长度信息
+		System.arraycopy(cmdlenbytes, 0, returnbytes, writepos, cmdlenbytes.length);
+		writepos += cmdlenbytes.length;
+		//写入通讯权令
+		System.arraycopy(byte_powertoken, 0, returnbytes, writepos, byte_powertoken.length);
+		writepos += byte_powertoken.length;
+		
+		//写入用户ID
+		System.arraycopy(byte_accountid, 0, returnbytes, writepos, byte_accountid.length);
+		writepos += byte_accountid.length;
+		//写入操作类型
+		System.arraycopy(actionBytes , 0 , returnbytes , writepos , actionBytes.length);
+		writepos += actionBytes.length;
+		//写入内容
+		if(cmdbytes.length>0)
+		{
+			System.arraycopy(cmdbytes , 0 , returnbytes , writepos , cmdbytes.length);
+		}
+		
+		//this.loger.info(this.debugReciveByte(returnbytes, true));
+		
+		return returnbytes;
+	}
+	
+//	/**
+//	 * 把一个操作封装成对另一个服务器的数据包
+//	 * @param cmdbytes
+//	 * @param actionBytes
+//	 * @param powertoken
+//	 * @param accountid
+//	 * @return
+//	 */
+//	public byte[] packToShortServerProtocolBytes(byte[] cmdbytes , byte[] actionBytes , int powertoken ,int accountid){
+//		//{通讯权令(2u)}{用户ID(4u)}{动作类型(2u)+包内容}
+//		byte[] byte_powertoken = this.FillBytes(this.ToUnsignBLenByte(powertoken),2);
+//		byte[] byte_accountid = this.FillBytes(this.ToUnsignBLenByte(accountid),4);
+//		
+//		byte[] returnbytes = new byte[byte_powertoken.length+byte_accountid.length+actionBytes.length+cmdbytes.length];
+//		int writepos = 0;
+//		
+//		//写入通讯权令
+//		System.arraycopy(byte_powertoken, 0, returnbytes, writepos, byte_powertoken.length);
+//		writepos += byte_powertoken.length;
+//		
+//		//写入用户ID
+//		System.arraycopy(byte_accountid, 0, returnbytes, writepos, byte_accountid.length);
+//		writepos += byte_accountid.length;
+//		//写入操作类型
+//		System.arraycopy(actionBytes , 0 , returnbytes , writepos , actionBytes.length);
+//		writepos += actionBytes.length;
+//		//写入内容
+//		if(cmdbytes.length>0)
+//		{
+//			System.arraycopy(cmdbytes , 0 , returnbytes , writepos , cmdbytes.length);
+//		}
+//		
+//		return returnbytes;
+//	}
+
+	/**
+	 * 分析接收到的命令bytes,这里已经过滤掉协议头等信息，从权令位开始处理
+	 * 
+	 * @param cmdbody
+	 * @return 客户端信息
+	 */
+	public Information parseCmdBytes(byte[] cmdbody) {
+		// this.loger.debug(this.debugReciveByte(cmdbody, true));
+		// this.loger.debug("parseCmdBytes:"+cmdbody.length);
+		if (cmdbody.length < 8) {
+			// [2(pt)+4(uid)+2(actiontype) = 8]
+			this.loger.info("{ParseCmdBytes}Package Len Too Short");
+			return null;
+		}
+		
+		byte[] byte_pt = new byte[2];//权令
+		//byte[] byte_special = new byte[1];// 特殊用途数据位
+		byte[] byte_uid = new byte[4];// 用户ID
+		byte[] byte_action = new byte[2];// 操作类型
+		//byte[] byte_cmdbody = new byte[cmdbody.length- (byte_pt.length + byte_special.length + byte_uid.length + byte_action.length)];
+		byte[] byte_cmdbody = new byte[cmdbody.length- (byte_pt.length + byte_uid.length + byte_action.length)];
+
+		int readpos = 0;
+		// 获取权令
+		System.arraycopy(cmdbody, readpos, byte_pt, 0, byte_pt.length);
+		readpos += byte_pt.length;
+
+		// 特殊用途位
+//		System.arraycopy(cmdbody, readpos, byte_special, 0,byte_special.length);
+//		readpos += byte_special.length;
+		
+		// 获取用户ID
+		System.arraycopy(cmdbody, readpos, byte_uid, 0, byte_uid.length);
+		readpos += byte_uid.length;
+		// 获取操作类型
+		System.arraycopy(cmdbody, readpos, byte_action, 0, byte_action.length);
+		readpos += byte_action.length;
+		// 获取cmdbody
+		if (cmdbody.length > readpos) {
+			System.arraycopy(cmdbody, readpos, byte_cmdbody, 0,byte_cmdbody.length);
+		}
+		
+		int pt=Integer.parseInt(this.ByteToHexLen(byte_pt), 16);// 权令
+		int userId=Integer.parseInt(this.ByteToHexLen(byte_uid), 16);//用户ID
+		String type=this.ByteToHexLen(byte_action);//操作类型
+		
+		return new Information(pt,userId,type,byte_cmdbody);
+	}
+
+//	/**
+//	 * 获取提示信息的bytes
+//	 * 
+//	 * @param msgbyte
+//	 *            提示信息
+//	 * @return 提示信息的bytes
+//	 */
+//	public byte[] getAlertMsg(String _message) {
+//		byte[] msgbyte = null;
+//		try {
+//			msgbyte = _message.getBytes(Protocol.PROTOCAL_ENCODEDEFAULT);
+//		} catch (Exception e) {
+//		}
+//		return this.packProtocolBytes(msgbyte, Action_Server_Alert);
+//	}
+//
+//	/**
+//	 * 获取错误信息的bytes
+//	 * 
+//	 * @param msgbyte
+//	 *            错误信息
+//	 * @return 错误信息的bytes
+//	 */
+//	public byte[] getErrorMsg(String _message) {
+//		byte[] msgbyte = null;
+//		try {
+//			msgbyte = _message.getBytes(Protocol.PROTOCAL_ENCODEDEFAULT);
+//		} catch (Exception e) {
+//		}
+//		return this.packProtocolBytes(msgbyte, Action_Server_Error);
+//	}
+
+	/**
+	 * 获取登陆失败信息
+	 * 
+	 * @param msg
+	 * @return
+	 */
+	public byte[] getLoginFalse(byte[] msgbytes) {
+		this.loger.debug("LOGINFALSE:" + new String(msgbytes));
+		byte[] returnbyte = null;
+		byte[] dealbyte = new byte[msgbytes.length + 2];
+		dealbyte[0] = 1;// 登陆失败
+		dealbyte[1] = 0;// 用户权限
+		System.arraycopy(msgbytes, 0, dealbyte, 2, msgbytes.length);
+
+		// returnbyte = this.toProtocolBytes(dealbyte, this.Client_Login);
+		return returnbyte;
+	}
+
+}

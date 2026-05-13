@@ -1,0 +1,45 @@
+package com.pst.game.vo;
+
+import java.util.List;
+
+public class LinePlayerVO {
+	/**
+	 * 玩家名称
+	 */
+	public String pn;
+	
+	/**
+	 * 工会ID
+	 */
+	public int gid;
+	
+	/**
+	 * 阵营ID
+	 */
+	public int cid;
+	
+	/**
+	 * 当前地图ID
+	 */
+	public int mid;
+	
+	/**
+	 * 所在线
+	 */
+	public int l;
+	
+	/**
+	 * 身上喇叭id与数量[id1:num1,id2:num2......]
+	 */
+	public String bn;
+	
+	/**
+	 * 玩家好友的ID列表
+	 */
+	public List<Integer> fid;
+	
+	/**
+	 * 帐号ID
+	 */
+	public int uid;
+}

@@ -1,0 +1,51 @@
+package com.pst.db.dao;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.pst.core.line.entity.Line;
+import com.pst.core.util.IpUtil;
+import com.pst.db.ConnectionPoolManager;
+
+public class LineDao {
+	public List<Line> getLines() {
+		Connection con = ConnectionPoolManager.getConnectionPool().getConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+		String sql = "select line_id,line_name,ip,port,status from config_lines order by line_id";
+		List<Line> lines = new ArrayList<Line>();
+		try {
+			Line line;
+			stmt = con.createStatement();
+			rs = stmt.executeQuery(sql);
+			IpUtil ipUtil=new IpUtil();
+			while (rs.next()) {
+				line=new Line();
+				line.setId(rs.getInt("line_id"));
+				line.setPort(rs.getInt("port"));
+				line.setIp(ipUtil.longToIP(rs.getLong("ip")));
+				line.setName(rs.getString("line_name"));
+				line.setStatus(0);
+				lines.add(line);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (rs != null)
+					rs.close();
+				if (stmt != null)
+					stmt.close();
+				if (con != null)
+					con.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		return lines;
+	}
+}

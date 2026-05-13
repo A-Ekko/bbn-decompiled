@@ -1,0 +1,9 @@
+package com.pst.core.line.command.info;
+
+import java.util.List;
+
+public class ServerInfo {
+	public String n;
+	
+	public List<LineInfo> l;
+}

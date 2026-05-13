@@ -1,0 +1,35 @@
+package com.pst.db.dao;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import com.pst.db.ConnectionPoolManager;
+
+public class CountMaxRoleDao {
+	public int getMaxRoleSize(){
+		Connection con =ConnectionPoolManager.getConnectionPool().getConnection();
+		Statement stmt=null;
+		ResultSet rs=null;
+		int number=0;
+		try {
+			stmt=con.createStatement();
+			rs=stmt.executeQuery("select count(id) from role");
+			if(rs.next()){
+				number=rs.getInt(1);
+			}
+		}catch(SQLException e){
+			e.printStackTrace();
+		}finally{
+			try {
+				if(rs!=null)rs.close();
+				if(stmt!=null)stmt.close();
+				if(con!=null)con.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return number;
+	}
+}

@@ -1,0 +1,62 @@
+package com.pst.core.line;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.mina.core.service.IoHandlerAdapter;
+import org.apache.mina.core.session.IoSession;
+
+import com.pst.core.line.entity.Line;
+import com.pst.core.line.store.SystemStore;
+
+public class ServerHandle extends IoHandlerAdapter {
+
+	private Logger logger = Logger.getLogger(ServerHandle.class);
+	private Console console=new Console();
+	
+	public ServerHandle() {
+		this.logger.setLevel(Level.DEBUG);
+	}
+
+	public void sessionCreated(IoSession session) {
+		logger.info("创建角色Session["+session.getId()+"] session="+session+"");
+	}
+
+	public void sessionOpened(IoSession session) {
+		//this.logger.debug("open:" + session.toString());
+	}
+
+	public void sessionClosed(IoSession session) {
+		Line line;
+		for(int i=0;i<SystemStore.lines.size();i++){
+			line=SystemStore.lines.get(i);
+			if(session.equals(line.getSession())){
+				console.lineClose(line);
+				logger.info("线["+line.getId()+"]关闭");
+				break;
+			}
+		}
+	}
+
+	public void sessionIdle(IoSession session) {
+		//this.logger.debug("Idle:" + session.toString());
+	}
+
+	public void messageReceived(IoSession session, Object data) {
+		//this.logger.debug("messageReceived");
+		//this.logger.debug(this._ProtocolDebug.DebugReciveByte((byte[])data,true)+"====== messageReceived =======test");
+		//logger.info("接收数据包的时间");
+		//allocator.allocate(session,(byte[])data);//分配对会话处理的节点服务器
+		console.action(session, (byte[])data);
+	}
+
+	public void messageSent(IoSession session, Object data) {
+		//this.logger.debug("messageSent:" + session.toString() + "->"+ message.toString());
+		//this.logger.debug(this._ProtocolDebug.DebugReciveByte((byte[]) message,true));
+	}
+
+	public void exceptionCaught(IoSession session, Throwable throwables){
+		//this.logger.error("Mina error:" + session.toString() + "->"+ throwables.getMessage());
+		//throwables.printStackTrace();
+	}
+
+}

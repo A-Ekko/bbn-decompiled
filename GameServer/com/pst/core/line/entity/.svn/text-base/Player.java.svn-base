@@ -1,0 +1,167 @@
+package com.pst.core.line.entity;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.mina.core.session.IoSession;
+
+import java.util.ArrayList;
+
+public class Player {
+	/**
+	 * 玩家Id
+	 */
+	private int id;
+	
+	/**
+	 * 玩家名称
+	 */
+	private String name;
+	
+	/**
+	 * 公会
+	 */
+	private int guild;
+	
+	/**
+	 * 阵营
+	 */
+	private int camp;
+	
+	/**
+	 * 玩家所在的地图
+	 */
+	private int map;
+	
+	/**
+	 * 帐号ID
+	 */
+	private int userId;
+
+	public int getUserId() {
+		return userId;
+	}
+
+	public void setUserId(int userId) {
+		this.userId = userId;
+	}
+
+	public int getMap() {
+		return map;
+	}
+
+	public void setMap(int map) {
+		this.map = map;
+	}
+
+	/**
+	 * 所在的游戏线
+	 */
+	private int line;
+	
+//	/**
+//	 * 喇叭的数量
+//	 */
+//	private int bugleNumber;
+	
+	/**
+	 * 喇叭<喇叭Id,喇叭数量>
+	 */
+	private Map<Integer,Integer> bugles=new HashMap<Integer,Integer>();
+	
+	/**
+	 * 好友ID列表
+	 */
+	private List<Integer> friends=new ArrayList<Integer>();
+
+	/**
+	 * 客户端会话
+	 */
+	private IoSession clientSession;
+	
+	/**
+	 * 服务会话
+	 */
+	private IoSession serviceSession;
+
+	public IoSession getServiceSession() {
+		return serviceSession;
+	}
+
+	public void setServiceSession(IoSession serviceSession) {
+		this.serviceSession = serviceSession;
+	}
+
+	public IoSession getClientSession() {
+		return clientSession;
+	}
+
+	public void setClientSession(IoSession session) {
+		this.clientSession = session;
+	}
+
+//	public int getBugleNumber() {
+//		return bugleNumber;
+//	}
+//
+//	public void setBugleNumber(int bugleNumber) {
+//		this.bugleNumber = bugleNumber;
+//	}
+
+	public int getLine() {
+		return line;
+	}
+
+	public void setLine(int line) {
+		this.line = line;
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public int getGuild() {
+		return guild;
+	}
+
+	public void setGuild(int guild) {
+		this.guild = guild;
+	}
+
+	public int getCamp() {
+		return camp;
+	}
+
+	public void setCamp(int camp) {
+		this.camp = camp;
+	}
+	
+	public Map<Integer, Integer> getBugles() {
+		return bugles;
+	}
+
+	public void setBugles(Map<Integer, Integer> bugles) {
+		this.bugles = bugles;
+	}
+	
+	public List<Integer> getFriends() {
+		return friends;
+	}
+
+	public void setFriends(List<Integer> friends) {
+		this.friends = friends;
+	}
+}
